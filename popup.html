@@ -1,0 +1,166 @@
+<html>
+<head>
+    <title>Smag Jira plugin - Made by Brodalee.</title>
+    <link rel="stylesheet" href="css/boostrap.css">
+
+    <!-- LIBS scripts -->
+    <script src="lib/templateEngine.js"></script>
+    <script src="lib/vanillapicker.js"></script>
+    <script src="./lib/snackBar.js"></script>
+
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body data-type="plugin">
+    <div id="templates" class="undisplay"
+    data-jiraticket="<div><span style='font-size: 18px;''>{{key}} : {{summary}}</span><br><span style='font-size: 12px;''>Description : <i>{{description}}</i></span><br><select id='jira_selector_issue_status_{{key}}' class='form-control'><option selected='' value='null'>Déplacer vers</option></select><hr></div>"
+    data-scrumboardchoice="<div><button class='form-control btn btn-info' id='choice_{{id}}''>{{name}}</button></div>"
+    data-gitlabmergerequest="<div><p class='text-left' style='font-size: 12px;'></p><image style='width: 25px; height: 25px; margin-right: 10px;' src='{{mrAuthorAvatar_url}}'/><span id='th_up_{{mrId}}'>{{mrUpvotes}}</span> <svg data-iid='{{mrIid}}' data-projectid='{{mrProject_id}}' data_award_id_up id='up_{{mrId}}' style='width:15px; height: 15px; {{fill}}'viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'><path fill-rule='evenodd' d='M4 5L8.586.414a1.414 1.414 0 0 1 2.414 1V5h2.991a2 2 0 0 1 1.928 2.531l-1.248 4.532A4 4 0 0 1 10.814 15H0V5h4zm5-2.172V7h4.991l-1.249 4.531A2 2 0 0 1 10.814 13H5V6.828l4-4zM3 7H2v6h1V7z'></path></svg> / <span id='th_down_{{mrId}}'>{{mrDownvotes}}</span><svg data-iid='{{mrIid}}' data-projectid='{{mrProject_id}}' data_award_id_down id='down_{{mrId}}' style='width:15px; height: 15px; {{fill_down}} ' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'><path fill-rule='evenodd' d='M4 11H0V1h10.814a4 4 0 0 1 3.857 2.937l1.248 4.532A2 2 0 0 1 13.991 11H11v3.586a1.414 1.414 0 0 1-2.414 1L4 11zm1-1.828l4 4V9h4.991l-1.249-4.531A2 2 0 0 0 10.814 3H5v6.172zM3 3H2v6h1V3z'></path></svg> / {{mrUser_notes_count}}  <svg style='width:15px; height: 15px;' viewBox='0 0 16 16' data-iid='{{mrIid}}' data-projectid='{{mrProject_id}}' id='comment_{{mrIid}}' xmlns='http://www.w3.org/2000/svg'><path fill-rule='evenodd' d='M4 10.41l-2.5 1.445A1 1 0 0 1 0 10.99V2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v8.99a1 1 0 0 1-1.5.865L11.29 14H6a2 2 0 0 1-2-2v-1.59zM4 8.1L2 9.258V2h8v2H6a2 2 0 0 0-2 2v2.1zM6 12h5.825L14 13.257V6H6v6z'></path></svg><span style='font-size: 14px; margin-left: 10px;'> <a data-link='{{mrWeb_url}}' id='{{mrId}}' style='color:black; cursor: grab;'>{{mrTitle}}</a></span><div/>"
+    data-jirajse="<div><span style='font-size: 18px;''>{{key}} : {{summary}}</span><br><span style='font-size: 12px;''>Description : <i>{{description}}</i></span><br><button class='form-control btn btn-info' id='take_jse_{{id}}'>Prendre ce ticket</button><hr></div>">
+    </div>
+
+    <video src="Zen_petale.webm" autoplay loop></video>
+
+    <a href="https://brodaleegitlabplugin.herokuapp.com/" target="_blank" class="linkbox">
+        <p>~ Viens check les majs sur le site ~</p>
+    </a>
+
+    <div class="rightFloating">
+        <span id="reload" title="Rafraichir">
+            <svg id="turn" width="2em" height="2em" viewBox="0 0 16 16" class="bi bi-arrow-repeat" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+                <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+            </svg>
+        </span>
+
+        <span  id="disconnect" title="Se déconnecter">
+            <svg width="2em" height="2em" viewBox="0 0 16 16" class="bi bi-door-open" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" d="M1 15.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5zM11.5 2H11V1h.5A1.5 1.5 0 0 1 13 2.5V15h-1V2.5a.5.5 0 0 0-.5-.5z"/>
+                <path fill-rule="evenodd" d="M10.828.122A.5.5 0 0 1 11 .5V15h-1V1.077l-6 .857V15H3V1.5a.5.5 0 0 1 .43-.495l7-1a.5.5 0 0 1 .398.117z"/>
+                <path d="M8 9c0 .552.224 1 .5 1s.5-.448.5-1-.224-1-.5-1-.5.448-.5 1z"/>
+            </svg>
+        </span>
+    </div>
+
+    <div class="container">
+
+        <ul class="nav nav-tabs">
+            <li id="tab_configuration" class="nav-item">
+                <a class="nav-link active">Configuration</a>
+            </li>
+            <li id="tab_gitlab" class="nav-item">
+                <a class="nav-link">Gitlab</a>
+            </li>
+            <li id="tab_jira" class="nav-item">
+                <a class="nav-link">Jira</a>
+            </li>
+            <li id="tab_jse" class="nav-item" style="display: none">
+                <a class="nav-link">JSE</a>
+            </li>
+        </ul>
+
+        <div id="container_configuration">
+            <div id="config-container">
+                <div>
+                    <p>Nom groupe gitlab : <input type="text" id="group_name" class="form-control"></p>
+                </div>
+                <div id="nb_pouce_container">
+                    <p>Nb pouces : <input type="number" id="nb_approval" class="form-control"></p>
+                </div>
+            </div>
+            <div id="config-container2">
+                <div>
+                    <p>Couleur merge possible : <button id="cmp" value=""></button>
+                </div>
+                <div id="color_unseen_merge_container">
+                    <p>Couleur merge non vue : <button id="cmnv" value=""></button>
+                </div>
+            </div>
+            <div>
+                <button class="btn btn-success form-control" id="validate_config">Valider</button>
+            </div>
+            <div id="config_container_notifications">
+                <h4 class="text-center">Notifications</h4>
+                <label  class="switch">
+                    <input type="checkbox" id="can_merge_input">
+                    <span class="slider round"></span>
+                </label>
+                <div id="notification_gitlab">Merge possible</div>
+            </div>
+        </div>
+
+        <div id="container_gitlab" style="display: none;">
+            <div id="not_connected">
+                <div class="text-center">
+                    <p>Vous n'êtes pas connecté à Gitlab, veuillez mettre votre token.</p>
+                    <div>
+                        <input type="text" class="form-control" id="token_gitlab" placeholder="Gitlab Token">
+                    </div>
+                    <div>
+                        <button class="btn btn-success form-control" id="validate_gitlab_token">Valider</button>
+                    </div>
+                </div>
+            </div>
+            <div id="loading"></div>
+            <div id="gitlab_loading" style="display: none;">
+                <span class="spinner-border spinner-border-md" role="status" aria-hidden="true"></span> Chargement...
+            </div>
+            <div id="connected"></div>
+            <div id="showComments" style="display: none;">
+                <span id="showCommentsCross">X</span>
+                <br>
+                <div id="showCommentsContainer"></div>
+                <div id="showCommentsLoading" style="display: none;">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Chargement...
+                </div>
+            </div>
+        </div>
+
+        <div id="container_jira" style="display: none;">
+            <div id="jira_not_connected">
+                <div>
+                    <label for="jira_email_auth">Entrez votre email :</label>
+                    <input type="email" id="jira_email_auth" class="form-control">
+                </div>
+                <div>
+                    <label for="jira_email_auth">Entrez votre token : &Tab; &Tab; Vous n'avez pas de token ? <a id="jira_create_token" style="cursor: pointer;color:black;">Cliquez ici</a></label>
+                    <input type="text" id="jira_token_auth" class="form-control">
+                </div>
+                <div>
+                    <button id="jira_connexion" class="form-control btn btn-success">Connexion</button>
+                </div>
+            </div>
+            <div id="jira_not_connected_scrum_board_choices" style="display: none;"></div>
+            <div id="jira_loading" style="display: none;">
+                <span class="spinner-border spinner-border-md" role="status" aria-hidden="true"></span> Chargement...
+            </div>
+            <div id="jira_connected"></div>
+        </div>
+
+        <div id="container_jse" style="display: none;">
+            <h3 class="text-center">Jira Search Engine</h3>
+            <h5 class="text-center">Trouver un ticket dans le backlog pour se l'assigner</h5>
+            <div class="input-group mb-3">
+                <input type="text" id="field_jse_name" class="form-control" placeholder="Rechercher par : titre, numéro ticket, description...">
+                <div class="input-group-append">
+                  <button id="jse_search_btn" class="btn btn-outline-secondary">
+                    <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-search" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" d="M10.442 10.442a1 1 0 0 1 1.415 0l3.85 3.85a1 1 0 0 1-1.414 1.415l-3.85-3.85a1 1 0 0 1 0-1.415z"/>
+                        <path fill-rule="evenodd" d="M6.5 12a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM13 6.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0z"/>
+                      </svg>
+                  </button>
+                </div>
+              </div>
+            <div id="jse_container_search"></div>
+        </div>
+    </div>
+
+    <script src="./scripts/vars.js"></script>
+    <script src="./scripts/Objects.js"></script>
+    <script src="./scripts/functions.js"></script>
+    <script src="./scripts/console.js"></script>
+    <script src="./script.js"></script>
+</body>
+
+</html>
