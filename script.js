@@ -2,17 +2,17 @@
  * TODO : FEATURES :
  *
  *  GitLabTab :
- *      - Ajouter un boutton pour effectuer un merge quand c'est notre branche et que l'on à le minimum
- *          de pouces requis. OK
+ * 
  *  Application :
  *      - Voir pour améliorer l'UI.
  *      - Améliorer le code.
  *      - Passer sur un framework? : React ? Angular ? => to build.
  *      - Créer un système de mise à jour automatique. (voir si possible).
+ * 
  *  JIRA tab:
  *      - Pouvoir s'attribuer un ticket après recherche dans le backlog.
+ * 
  *  Configuration :
- *      - Activer / Desactiver un système de notification pour savoir si l'on peut merger une branche. OK
  */
 
 const body = document.body;
