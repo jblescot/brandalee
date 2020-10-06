@@ -1,20 +1,3 @@
-/**
- * TODO : FEATURES :
- *
- *  GitLabTab :
- * 
- *  Application :
- *      - Voir pour améliorer l'UI.
- *      - Améliorer le code.
- *      - Passer sur un framework? : React ? Angular ? => to build.
- *      - Créer un système de mise à jour automatique. (voir si possible).
- * 
- *  JIRA tab:
- *      - Pouvoir s'attribuer un ticket après recherche dans le backlog.
- * 
- *  Configuration :
- */
-
 const body = document.body;
 
 const JIRA_URL_BASE = "https://smag-jira.atlassian.net/";
@@ -169,7 +152,7 @@ loadConfiguration(navigator).then(() => {
  * Initialise la partie déconnexion.
  */
 function initDisconnect() {
-    document.getElementById('disconnect').addEventListener('click', function(e) {
+    document.getElementById('disconnect').addEventListener('click', () => {
         navigator.store({jira: null})
         navigator.store({gitlab: null})
         updateGitlabTab();
@@ -250,10 +233,8 @@ function applyFilterForJSE(issues) {
             if (i.fields.description == null) return false
             let regex = new RegExp(`(.*)${word}(.*)`)
             let found = i.fields.description.match(regex)
-            if (found && found.length > 0) {
-                return true
-            }
-            return false
+            return found && found.length > 0;
+
         })]
     })
     let finalData = new Set([...issuedFilteredByDescription, ...issuesFilteredByKey, ...issuesFilteredByTitle])
@@ -438,7 +419,7 @@ function updateJiraTab() {
                 headers: headers
             })
             .then(res => {
-                if (res.status != 200) {
+                if (res.status !== 200) {
                     return null
                 }
                 return res.json()
@@ -452,7 +433,7 @@ function updateJiraTab() {
                             headers: headers
                         })
                         .then(res => {
-                            if (res.status != 200) {
+                            if (res.status !== 200) {
                                 return null;
                             }
                             return res.json()
@@ -461,9 +442,9 @@ function updateJiraTab() {
                             if (sprintData != null) {
                                 dontDisplayElement('jira_loading')
                                 let issues = sprintData.issues
-                                let ownTicket = issues.filter(i => i.fields?.assignee?.accountId == user.accountId)
+                                let ownTicket = issues.filter(i => i.fields?.assignee?.accountId === user.accountId)
                                 document.getElementById('jira_connected').innerHTML = ""
-                                if (ownTicket.length == 0) {
+                                if (ownTicket.length === 0) {
                                     document.getElementById('jira_connected').innerHTML += "Vous n'avez pas de ticket assigné."
                                 }
                                 let selector_ids = []
@@ -478,14 +459,14 @@ function updateJiraTab() {
                                         headers: headers,
                                         method: 'GET'
                                     }).then(res => {
-                                        if (res.status == 200) {
+                                        if (res.status === 200) {
                                             return res.json()
                                         }
                                         return null
                                     })
                                     .then(status => {
                                         if (status) {
-                                            let real_status = status.transitions.filter(i => i.isAvailable == true)
+                                            let real_status = status.transitions.filter(i => i.isAvailable === true)
                                             real_status.forEach(s => {
                                                 document.getElementById(element).innerHTML += `<option value="${s.id}">${s.name}</option>`  
                                             })
@@ -502,10 +483,7 @@ function updateJiraTab() {
                                                     method: 'POST',
                                                     body: JSON.stringify(content)
                                                 }).then(res => {
-                                                    if (res.status === 200 || res.status === 204) {
-                                                        return true
-                                                    }
-                                                    return false
+                                                    return res.status === 200 || res.status === 204;
                                                 })
                                                 .then(status => {
                                                     if (status === true) {
@@ -542,7 +520,7 @@ function updateJiraTab() {
             headers: headers
         })
         .then(res => {
-            if (res.status != 200) {
+            if (res.status !== 200) {
                 return null;
             }
             return res.json()
@@ -555,7 +533,7 @@ function updateJiraTab() {
                 })
                 .then(res => {
                     e.target.innerHTML = "Connexion"
-                    if (res.status != 200) {
+                    if (res.status !== 200) {
                         return null
                     }
                     return res.json()
@@ -563,7 +541,7 @@ function updateJiraTab() {
                 .then(board => {
                     if (board != null) {
                         document.getElementById('jira_not_connected_scrum_board_choices').innerHTML = ""
-                        let boards = board.values.filter(b => b.type == "scrum")
+                        let boards = board.values.filter(b => b.type === "scrum")
                         displayElement('jira_not_connected_scrum_board_choices')
                         dontDisplayElement('jira_not_connected')
                         document.getElementById('jira_not_connected_scrum_board_choices').innerHTML += `<h3 class="text-center"> Sélectionnez votre équipe </h3> <br/>`
@@ -577,7 +555,7 @@ function updateJiraTab() {
                                     document.getElementById('jira_not_connected_scrum_board_choices').innerHTML = ""
                                     dontDisplayElement('jira_not_connected_scrum_board_choices');
                                     displayElement('jira_loading');
-                                    let selectedScrumTeam = boards.find(i => i.id == parseInt(e.target.id.replace('choice_', '')))
+                                    let selectedScrumTeam = boards.find(i => i.id === parseInt(e.target.id.replace('choice_', '')))
                                     let identity = {
                                         user: userData[0],
                                         scrumTeam: selectedScrumTeam
@@ -609,14 +587,14 @@ function updateJiraStatusIssue(relatedDOMElement, headers) {
         headers: headers,
         method: 'GET'
     }).then(res => {
-        if (res.status == 200) {
+        if (res.status === 200) {
             return res.json()
         }
         return null
     })
     .then(status => {
         if (status) {
-            let real_status = status.transitions.filter(i => i.isAvailable == true)
+            let real_status = status.transitions.filter(i => i.isAvailable === true)
             real_status.forEach(s => {
                 document.getElementById(relatedDOMElement).innerHTML += `<option value="${s.id}">${s.name}</option>`  
             })
@@ -660,7 +638,7 @@ function updateGitlabTab() {
                             .then(mrs => {
                                 mrs.forEach((mr) => {
                                     if (mr.merged_by == null) {
-                                        projects.find(i => i.id == mr.project_id).mr.push(mr)
+                                        projects.find(i => i.id === mr.project_id).mr.push(mr)
                                     }
                                 })
                                 dontDisplayElement('gitlab_loading')
@@ -692,12 +670,12 @@ function updateGitlabTab() {
                                                         let fill_down = 'fill: black;'
                                                         let data_award_id_up = "data-awardid"
                                                         let data_award_id_down = "data-awardid"
-                                                        let th = awards.find(i => i.user.id == data.gitlab.user.id && i.name == "thumbsup");
+                                                        let th = awards.find(i => i.user.id === data.gitlab.user.id && i.name === "thumbsup");
                                                         if (th != null) {
                                                             fill = 'fill: gold;';
                                                             data_award_id_up += '="'+th.id+'"'
                                                         }
-                                                        let down_th = awards.find(i => i.user.id == data.gitlab.user.id && i.name == "thumbsdown")
+                                                        let down_th = awards.find(i => i.user.id === data.gitlab.user.id && i.name === "thumbsdown")
                                                         if (down_th) {
                                                             data_award_id_down += '="'+down_th.id+'"'
                                                             fill_down = 'fill: gold;'
@@ -716,7 +694,7 @@ function updateGitlabTab() {
                                                             mrUser_notes_count: mr.user_notes_count
                                                         })*/
                                                         document.getElementById('connected').innerHTML += '<p class="text-left" style="font-size: 12px;">';
-                                                        document.getElementById('connected').innerHTML += '<image style="width: 25px; height: 25px; margin-right: 10px;" src="' + mr.author.avatar_url + '" />';
+                                                        document.getElementById('connected').innerHTML += '<img style="width: 25px; height: 25px; margin-right: 10px;" src="' + mr.author.avatar_url + '" />';
                                                         document.getElementById('connected').innerHTML += '<span id="th_up_'+mr.id+'">' + mr.upvotes + '</span> <svg data-iid="'+mr.iid+'" data-projectid="'+mr.project_id+'" '+data_award_id_up+' id="up_' + mr.id + '" style="width:15px; height: 15px;' + fill + '" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4 5L8.586.414a1.414 1.414 0 0 1 2.414 1V5h2.991a2 2 0 0 1 1.928 2.531l-1.248 4.532A4 4 0 0 1 10.814 15H0V5h4zm5-2.172V7h4.991l-1.249 4.531A2 2 0 0 1 10.814 13H5V6.828l4-4zM3 7H2v6h1V7z"></path></svg>';
                                                         document.getElementById('connected').innerHTML += ' / ';
                                                         document.getElementById('connected').innerHTML += '<span id="th_down_'+mr.id+'">' + mr.downvotes + '</span> <svg data-iid="'+mr.iid+'" data-projectid="'+mr.project_id+'" '+data_award_id_down+' id="down_' + mr.id + '" style="width:15px; height: 15px;' + fill_down + '" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4 11H0V1h10.814a4 4 0 0 1 3.857 2.937l1.248 4.532A2 2 0 0 1 13.991 11H11v3.586a1.414 1.414 0 0 1-2.414 1L4 11zm1-1.828l4 4V9h4.991l-1.249-4.531A2 2 0 0 0 10.814 3H5v6.172zM3 3H2v6h1V3z"></path></svg>';
@@ -766,9 +744,9 @@ function updateGitlabTab() {
                                         if (document.getElementById(`up_${id}`))
                                             document.getElementById(`up_${id}`).addEventListener('click', function (e) {
                                                 let element = e.target
-                                                if(element.tagName == "PATH" || e.target.tagName == "path")
+                                                if(element.tagName === "PATH" || e.target.tagName === "path")
                                                     element = e.target.parentElement
-                                                if (element.dataset.awardid == '') {
+                                                if (element.dataset.awardid === '') {
                                                     addAwardEmoji(
                                                         element.dataset.projectid,
                                                         element.dataset.iid,
@@ -801,9 +779,9 @@ function updateGitlabTab() {
                                         if (document.getElementById(`down_${id}`))
                                             document.getElementById(`down_${id}`).addEventListener('click', function (e) {
                                                 let element = e.target
-                                                if(element.tagName == "PATH" || element.tagName == "path")
+                                                if(element.tagName === "PATH" || element.tagName === "path")
                                                     element = e.target.parentElement
-                                                if (element.dataset.awardid == "") {
+                                                if (element.dataset.awardid === "") {
                                                     addAwardEmoji(
                                                         element.dataset.projectid,
                                                         element.dataset.iid,
@@ -836,7 +814,7 @@ function updateGitlabTab() {
                                         if (document.getElementById(`comment_${id}`)) {
                                             document.getElementById(`comment_${id}`).addEventListener('click', function(e) {
                                                 let element = e.target
-                                                if(element.tagName == "PATH" || element.tagName == "path")
+                                                if(element.tagName === "PATH" || element.tagName === "path")
                                                     element = e.target.parentElement
 
                                                 document.getElementById('showCommentsContainer').innerHTML = ""
@@ -850,22 +828,26 @@ function updateGitlabTab() {
                                                 })
                                                     .then(data => data.json())
                                                     .then(comments => {
-                                                        if (comments.length == 0) {
+                                                        if (comments.length === 0) {
                                                             document.getElementById('showCommentsContainer').innerHTML = "Pas de commentaires sur la merge request."
                                                         }
                                                         document.getElementById('showCommentsLoading').style.display = "none"
                                                         let ids_resolve = []
-                                                        comments.filter(i => i.individual_note == false).forEach(comment => {
+                                                        let reader = new commonmark.Parser();
+                                                        let writer = new commonmark.HtmlRenderer();
+                                                        comments.filter(i => i.individual_note === false).forEach(comment => {
                                                             let isFirstNote = true
-                                                            comment.notes.filter (a => a.system == false).forEach(note => {
+                                                            console.log(comment)
+                                                            comment.notes.filter (a => a.system === false).forEach(note => {
                                                                 if (isFirstNote) {
                                                                     isFirstNote = false
                                                                     document.getElementById('showCommentsContainer').innerHTML += '<p class="text-left" style="font-size: 12px;">';
                                                                 } else {
                                                                     document.getElementById('showCommentsContainer').innerHTML += '<p class="text-left" style="font-size: 12px; margin-left:20px;">';
                                                                 }
-                                                                document.getElementById('showCommentsContainer').innerHTML += '<image style="width: 25px; height: 25px; margin-right: 10px;" src="' + note.author.avatar_url + '" />';
-                                                                document.getElementById('showCommentsContainer').innerHTML += '<span style="font-size: 14px; margin-left: 10px;"> ' + note.body;
+                                                                let parsed = reader.parse(note.body)
+                                                                document.getElementById('showCommentsContainer').innerHTML += '<img style="width: 25px; height: 25px; margin-right: 10px;" src="' + note.author.avatar_url + '" />';
+                                                                document.getElementById('showCommentsContainer').innerHTML += '<span style="font-size: 14px; margin-left: 10px;"> ' + writer.render(parsed);
                                                                 document.getElementById('showCommentsContainer').innerHTML += '</p>';
                                                                 if (note.resolvable && !note.resolved) {
                                                                     document.getElementById('showCommentsContainer').innerHTML += '<button id="resolve_'+comment.id+'" class="btn btn-success form-control" style="width: 200px; opacity: 0.6;">Résoudre le thread</button>'
@@ -879,7 +861,7 @@ function updateGitlabTab() {
                                                         ids_resolve.forEach(id => {
                                                             if (document.getElementById(id)) {
                                                                 document.getElementById(id).addEventListener('click', function(e) {
-                                                                    if (e.target.disabled || e.target.disabled == "disabled") return;
+                                                                    if (e.target.disabled || e.target.disabled === "disabled") return;
                                                                     let id = e.target.id.replace('resolve_', '')
                                                                     fetch(`https://gitlab.com/api/v4/projects/${element.dataset.projectid}/merge_requests/${element.dataset.iid}/discussions/${id}?resolved=true`, {
                                                                         method: 'PUT',
@@ -1071,11 +1053,7 @@ function afilWithJiraTicketAndColorDOM() {
                             if (el.classList.contains(DomClasses.UP_VOTES)) {
                                 has_votes = true
                                 let approvals_number = parseInt(el.textContent.trim())
-                                if (approvals_number < USED_CONFIG.MIN_APPROVAL_NUMBER) {
-                                    is_merge_possible = false;
-                                } else {
-                                    is_merge_possible = true
-                                }
+                                is_merge_possible = approvals_number >= USED_CONFIG.MIN_APPROVAL_NUMBER;
                             } else if (el.classList.contains(DomClasses.DOWN_VOTES)) {
                                 has_votes = true;
                                 is_merge_possible = false;

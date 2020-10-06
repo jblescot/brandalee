@@ -6,13 +6,13 @@
 
 Pour installer le plugin sur Chrome, ouvrez votre navigateur :
 
-- Cliquez sur les 3 points verticaux
+- Cliquez sur le menu vertical
 - Allez dans "Plus d'outils"
 - Cliquez sur "Extension"
 
 Une fois la fenêtre ouverte, activez le mode développeur, et cliquez sur "Charger l'extension non empaquetée".
 
-Il faudra au préalable avoir télécharger le plugin.
+Il faudra au préalable avoir téléchargé le plugin.
 
 Sélectionnez le dossier contenant tout le code source.
 
@@ -28,7 +28,7 @@ Pour installer le plugin sur Firefox, ouvrez votre navigateur :
 
 Pour installer le plugin sur Brave, ouvrez votre navigateur :
 
-- Dans le menu verticale, cliquez sur "Extensions"
+- Dans le menu vertical, cliquez sur "Extensions"
 - Activez le mode développeur
 
 Une fois la fenêtre ouverte, activez le mode développeur, et cliquez sur "Charger l'extension non empaquetée".
@@ -40,7 +40,7 @@ Sélectionnez le dossier contenant tout le code source.
 
 - css
     - bootstrap.css => Lib.
-    - style.css     => css modifiable pour l'interface du plugin.
+    - style.css => css modifiable pour l'interface du plugin.
 - icons (Ne pas toucher)
     - iconx48.png
     - iconx96.png
@@ -62,8 +62,9 @@ Sélectionnez le dossier contenant tout le code source.
 
 ## TODOS
 
-- Gitlab Tab :
+- Gitlab Tab : 
     - Répondre à des commentaires.
+    - Lire le markdown des commentaires. (OK)
     - Appliquer des suggestions.
 - Jira Tab :
     - S'assigner un ticket dans le sprint.

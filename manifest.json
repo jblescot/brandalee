@@ -14,6 +14,7 @@
           "./lib/snackBar.js",
           "./lib/templateEngine.js",
           "./lib/vanillapicker.js",
+          "./lib/commonmark.js",
           "script.js"
         ]
       }
