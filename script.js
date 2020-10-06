@@ -10,18 +10,37 @@ let GITLAB_MERGE_REQUEST_TEMPLATE = ""
 let JIRA_JSE_TEMPLATE = ""
 
 /**
+ * Charge le contenu d'un fichier et appel une callback en passant le textContent en paramètre.
+ *
+ * @param {String} fileName
+ * @param {$Call} callback
+ */
+function loadFileContent(fileName, callback) {
+    let url = navigator.getUrlOf(`tpl/${fileName}`)
+    fetch(url).then(res => res.blob()).then(blob => blob.text()).then(text => {callback(text)})
+}
+
+/**
  * Initialise les variables de template.
  */
 function initTemplateVars() {
-    if (document.getElementById('templates') && body.dataset.type && body.dataset.type === 'plugin') {
-        JIRA_TICKET_TEMPLATE = document.getElementById('templates').dataset.jiraticket
-        JIRA_SCRUMB_BOARD_CHOICE_TEMPLATE = document.getElementById('templates').dataset.scrumboardchoice
-        GITLAB_MERGE_REQUEST_TEMPLATE = document.getElementById('templates').dataset.gitlabmergerequest
-        JIRA_JSE_TEMPLATE = document.getElementById('templates').dataset.jirajse
+    if (body.dataset.type && body.dataset.type === 'plugin') {
+        loadFileContent('jira_ticket.tpl', (text) => {
+            JIRA_TICKET_TEMPLATE = text
+        })
+        loadFileContent('gitlab_merge_request.tpl', (text) => {
+            GITLAB_MERGE_REQUEST_TEMPLATE = text
+        })
+        loadFileContent('jira_jse.tpl', (text) => {
+            JIRA_JSE_TEMPLATE = text
+        })
+        loadFileContent('scrum_board_choice.tpl', (text) => {
+            JIRA_SCRUMB_BOARD_CHOICE_TEMPLATE = text
+        })
     }
 }
 
-initTemplateVars()
+initTemplateVars();
 
 /*********************************** */
 
