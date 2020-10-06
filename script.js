@@ -9,12 +9,19 @@ let JIRA_SCRUMB_BOARD_CHOICE_TEMPLATE = ""
 let GITLAB_MERGE_REQUEST_TEMPLATE = ""
 let JIRA_JSE_TEMPLATE = ""
 
-if (document.getElementById('templates') && body.dataset.type && body.dataset.type === 'plugin') {
-    JIRA_TICKET_TEMPLATE = document.getElementById('templates').dataset.jiraticket
-    JIRA_SCRUMB_BOARD_CHOICE_TEMPLATE = document.getElementById('templates').dataset.scrumboardchoice
-    GITLAB_MERGE_REQUEST_TEMPLATE = document.getElementById('templates').dataset.gitlabmergerequest
-    JIRA_JSE_TEMPLATE = document.getElementById('templates').dataset.jirajse
+/**
+ * Initialise les variables de template.
+ */
+function initTemplateVars() {
+    if (document.getElementById('templates') && body.dataset.type && body.dataset.type === 'plugin') {
+        JIRA_TICKET_TEMPLATE = document.getElementById('templates').dataset.jiraticket
+        JIRA_SCRUMB_BOARD_CHOICE_TEMPLATE = document.getElementById('templates').dataset.scrumboardchoice
+        GITLAB_MERGE_REQUEST_TEMPLATE = document.getElementById('templates').dataset.gitlabmergerequest
+        JIRA_JSE_TEMPLATE = document.getElementById('templates').dataset.jirajse
+    }
 }
+
+initTemplateVars()
 
 /*********************************** */
 
@@ -63,8 +70,6 @@ function loadConfiguration(navigator) {
     })
 }
 
-/********************* */
-
 const btn_validate_config = document.getElementById('validate_config');
 
 if (btn_validate_config) {
@@ -78,8 +83,12 @@ if (btn_validate_config) {
     });
 }
 
-/********************* */
-
+/**
+ * Ajoute un lien sur gitlab entre la référence de la branche, et un ticket jira.
+ *
+ * @param {HTMLElement} element
+ * @param {String} ticket
+ */
 function addSeeTicket(element, ticket) {
     element.setAttribute('title', `${JIRA_URL}${ticket}`);
     const toolTipText = document.createElement('span');
@@ -89,6 +98,9 @@ function addSeeTicket(element, ticket) {
     element.appendChild(toolTipText);
 }
 
+/**
+ * Initialise l'éventuel affichage d'une "snackbar".
+ */
 function initScripts() {
     setTimeout(function () {
         const el = document.getElementsByClassName(DomClasses.RESOLVED_THREAD)[0];
@@ -109,6 +121,9 @@ function initScripts() {
     }, 5000)
 }
 
+/**
+ * Ajoute le css au DOM pour la snackbar.
+ */
 function initCss() {
     const cssDOM = document.createElement('style');
     cssDOM.textContent = css
@@ -1002,7 +1017,7 @@ function showSnackBarWhenOnJiraTicket() {
 
 /**
  * Permet d'affilé un ticket JIRA avec le nom de la branche (si celle-ci à un format standard) afin de créer un
- * racourcie dans le DOM.
+ * raccourcie dans le DOM.
  * Colorise aussi le titre des MR selon :
  *  - Si celle-ci n'as pas encore été vue.
  *  - Si celle-ci peut être mergé.

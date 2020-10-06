@@ -50,6 +50,7 @@ Sélectionnez le dossier contenant tout le code source.
     - snackBar.js => SnackBar.
     - templateEngine.js => Moteur de template basé sur Mustache.
     - vanillapicker.js => Sélecteur de couleurs.
+    - commonmark.js => Parser de markdown.
 - scripts
     - backgroundScript.js => Script qui tourne en fond pour les notifications.
     - console.js => Extension de l'objet `console`.
