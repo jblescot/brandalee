@@ -57,6 +57,7 @@ Sélectionnez le dossier contenant tout le code source.
     - functions.js => Cumul de fonctions utilisable partout dans l'application.
     - Objects.js => Objets utilitaires pour l'application.
     - vars.js => Variables utilisables partout dans l'application.
+- tpl (Contient des templates d'item de liste)
 - script.js => C'est là que le tout se passe dans l'application.
 - popup.html => Interface de l'application.
 - manifest.json => Fichier de configuration (Ne pas toucher).

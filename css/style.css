@@ -195,3 +195,27 @@ input:checked + .slider:before {
 #config_container_notifications {
     margin-top: 5%;
 }
+
+.fs-18 {
+    font-size: 18px;
+}
+
+.fs-12 {
+    font-size: 12px;
+}
+
+.gitlab-avatar {
+    width: 25px;
+    height: 25px;
+    margin-right: 10px;
+}
+
+.gitlab-svg {
+    width:15px;
+    height: 15px;
+}
+
+.gitlab-link {
+    font-size: 14px;
+    margin-left: 10px;
+}
