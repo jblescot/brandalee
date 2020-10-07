@@ -647,8 +647,13 @@ function updateGitlabTab() {
 
             let headers = new Headers()
             headers.append('PRIVATE-TOKEN', data.gitlab.user.token)
-
+            let elementsToDisplay = [];
             data.gitlab.user.groups.forEach( group => {
+                elementsToDisplay.push({
+                    id: group.id,
+                    name: group.name,
+                    projects: []
+                })
                 fetch('https://gitlab.com/api/v4/groups/' + group.id + '/projects', {
                 method: 'GET',
                 headers: headers
@@ -675,9 +680,6 @@ function updateGitlabTab() {
                                         projects.find(i => i.id === mr.project_id).mr.push(mr)
                                     }
                                 })
-                                dontDisplayElement('gitlab_loading')
-                                document.getElementById('connected').innerHTML = '';
-                                document.getElementById('connected').innerHTML += '<h3 class="text-center">' + group.name + '</h3><br>';
                                 let ids = [];
                                 (new Promise(resolve => {
                                     let state_count = 0;
@@ -687,7 +689,13 @@ function updateGitlabTab() {
                                     })
                                     projects.forEach((project) => {
                                         if (project.mr.length > 0) {
-                                            let display_title = true
+                                            elementsToDisplay.find(e => e.id === group.id)
+                                                .projects
+                                                .push({
+                                                    id: project.id,
+                                                    name: project.name,
+                                                    mr: []
+                                                })
                                             project.mr.forEach((mr) => {
                                                 fetch('https://gitlab.com/api/v4/projects/' + mr.project_id + '/merge_requests/' + mr.iid + '/award_emoji', {
                                                     method: 'GET',
@@ -695,63 +703,68 @@ function updateGitlabTab() {
                                                 })
                                                     .then(awards => awards.json())
                                                     .then(awards => {
-                                                        if (display_title) {
-                                                            display_title = false
-                                                            document.getElementById('connected').innerHTML += '<h4 class="text-center">' + project.name + '</h4><br>';
-                                                            document.getElementById('connected').innerHTML += '<div style="margin-top: -10%;">';
-                                                        }
                                                         let fill = 'fill: black;'
                                                         let fill_down = 'fill: black;'
-                                                        let data_award_id_up = "data-awardid"
-                                                        let data_award_id_down = "data-awardid"
+                                                        let data_award_id_up = null
+                                                        let data_award_id_down = null
                                                         let th = awards.find(i => i.user.id === data.gitlab.user.id && i.name === "thumbsup");
                                                         if (th != null) {
                                                             fill = 'fill: gold;';
-                                                            data_award_id_up += '="'+th.id+'"'
+                                                            data_award_id_up += th.id
                                                         }
                                                         let down_th = awards.find(i => i.user.id === data.gitlab.user.id && i.name === "thumbsdown")
                                                         if (down_th) {
-                                                            data_award_id_down += '="'+down_th.id+'"'
+                                                            data_award_id_down += down_th.id
                                                             fill_down = 'fill: gold;'
                                                         }
-                                                        /*document.getElementById('connected').innerHTML += Mustache.render(GITLAB_MERGE_REQUEST_TEMPLATE, {
-                                                            mrUpvotes: mr.upvotes,
-                                                            mrDownvotes: mr.downvotes,
-                                                            mrIid: mr.iid,
-                                                            mrAuthorAvatar_url: mr.author.avatar_url,
-                                                            mrProject_id: mr.project_id,
-                                                            fill: fill,
-                                                            fill_down: fill_down,
-                                                            mrWeb_url: mr.web_url,
-                                                            mrTitle: mr.title,
-                                                            mrId: mr.id,
-                                                            mrUser_notes_count: mr.user_notes_count
-                                                        })*/
-                                                        document.getElementById('connected').innerHTML += '<p class="text-left" style="font-size: 12px;">';
-                                                        document.getElementById('connected').innerHTML += '<img style="width: 25px; height: 25px; margin-right: 10px;" src="' + mr.author.avatar_url + '" />';
-                                                        document.getElementById('connected').innerHTML += '<span id="th_up_'+mr.id+'">' + mr.upvotes + '</span> <svg data-iid="'+mr.iid+'" data-projectid="'+mr.project_id+'" '+data_award_id_up+' id="up_' + mr.id + '" style="width:15px; height: 15px;' + fill + '" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4 5L8.586.414a1.414 1.414 0 0 1 2.414 1V5h2.991a2 2 0 0 1 1.928 2.531l-1.248 4.532A4 4 0 0 1 10.814 15H0V5h4zm5-2.172V7h4.991l-1.249 4.531A2 2 0 0 1 10.814 13H5V6.828l4-4zM3 7H2v6h1V7z"></path></svg>';
-                                                        document.getElementById('connected').innerHTML += ' / ';
-                                                        document.getElementById('connected').innerHTML += '<span id="th_down_'+mr.id+'">' + mr.downvotes + '</span> <svg data-iid="'+mr.iid+'" data-projectid="'+mr.project_id+'" '+data_award_id_down+' id="down_' + mr.id + '" style="width:15px; height: 15px;' + fill_down + '" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4 11H0V1h10.814a4 4 0 0 1 3.857 2.937l1.248 4.532A2 2 0 0 1 13.991 11H11v3.586a1.414 1.414 0 0 1-2.414 1L4 11zm1-1.828l4 4V9h4.991l-1.249-4.531A2 2 0 0 0 10.814 3H5v6.172zM3 3H2v6h1V3z"></path></svg>';
-                                                        document.getElementById('connected').innerHTML += ' / ';
-                                                        document.getElementById('connected').innerHTML += mr.user_notes_count + ' <svg style="width:15px; height: 15px;" viewBox="0 0 16 16" data-iid="'+mr.iid+'" data-projectid="'+mr.project_id+'" id="comment_'+mr.id+'" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4 10.41l-2.5 1.445A1 1 0 0 1 0 10.99V2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v8.99a1 1 0 0 1-1.5.865L11.29 14H6a2 2 0 0 1-2-2v-1.59zM4 8.1L2 9.258V2h8v2H6a2 2 0 0 0-2 2v2.1zM6 12h5.825L14 13.257V6H6v6z"></path></svg>';
-
-                                                        if (mr.author.id === data.gitlab.user.id && mr.downvotes === 0 && mr.upvotes >= USED_CONFIG.MIN_APPROVAL_NUMBER) {
-                                                            document.getElementById('connected').innerHTML += "    "
-                                                            document.getElementById('connected').innerHTML += `<button data-id="${mr.project_id}" data-mriid="${mr.iid}" id="accept_mr_${mr.id}" class="btn btn-success">Merge</button>`
-                                                        }
-                                                        document.getElementById('connected').innerHTML += '<span style="font-size: 14px; margin-left: 10px;"> <a data-link="' + mr.web_url + '" id="' + mr.id + '" style="color:black; cursor: grab;">' + mr.title + '</a></span>';
-                                                        document.getElementById('connected').innerHTML += '</p>';
+                                                        elementsToDisplay.find(g => g.id === group.id)
+                                                            .projects.find(p => p.id === project.id)
+                                                            .mr.push({
+                                                                mrUpvotes: mr.upvotes,
+                                                                mrDownvotes: mr.downvotes,
+                                                                data_award_id_up: data_award_id_up,
+                                                                data_award_id_up_render: function() {
+                                                                    if (this.data_award_id_up !== null) {
+                                                                        return `data-awardid="${this.data_award_id_up}"`
+                                                                    }
+                                                                    return "data-awardid"
+                                                                },
+                                                                data_award_id_down: data_award_id_down,
+                                                                data_award_id_down_render: function() {
+                                                                    if (this.data_award_id_up !== null) {
+                                                                        return `data-awardid="${this.data_award_id_down}"`
+                                                                    }
+                                                                    return "data-awardid"
+                                                                },
+                                                                mrIid: mr.iid,
+                                                                mrAuthorAvatar_url: mr.author.avatar_url,
+                                                                mrProject_id: mr.project_id,
+                                                                fill: fill,
+                                                                fill_down: fill_down,
+                                                                mrWeb_url: mr.web_url,
+                                                                mrTitle: mr.title,
+                                                                mrId: mr.id,
+                                                                mrUser_notes_count: mr.user_notes_count,
+                                                                mergeBtn: function() {
+                                                                    if (this.canMerge) {
+                                                                        return `<button data-id="${this.mrProject_id}" data-mriid="${this.mrIid}" id="accept_mr_${this.mrId}" class="btn btn-success">Merge</button>`
+                                                                    }
+                                                                    return ""
+                                                                },
+                                                                canMerge: mr.author.id === data.gitlab.user.id && mr.downvotes === 0 && mr.upvotes >= USED_CONFIG.MIN_APPROVAL_NUMBER
+                                                            })
                                                         ids.push(`${mr.id}`);
                                                         state_count++;
                                                         if (state_count === max_state_count) {
+                                                            document.getElementById('connected').innerHTML = Mustache.render(GITLAB_MERGE_REQUEST_TEMPLATE, {groups: elementsToDisplay})
                                                             resolve(true)
                                                         }
                                                     });
                                             });
-                                            document.getElementById('connected').innerHTML += '</div>';
                                         }
                                     });
                                 })).then(resolve => {
+                                    dontDisplayElement('gitlab_loading')
                                     ids.forEach((id) => {
                                         if (document.getElementById(id))
                                             document.getElementById(id).addEventListener('click', function (e) {
