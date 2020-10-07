@@ -48,6 +48,15 @@ class Navigator {
         }
     }
 
+    getUrlOf(fileName) {
+        switch (this.getNavigator()) {
+            case 'chome':
+                return chrome.runtime.getURL(fileName)
+            case 'firefox':
+                return browser.extension.getURL(fileName);
+        }
+    }
+
     getStorage() {
         switch (this.getNavigator()) {
             case 'chome':
