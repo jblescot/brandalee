@@ -204,6 +204,23 @@ input:checked + .slider:before {
     font-size: 12px;
 }
 
+.fs-14 {
+    font-size: 14px;
+}
+
+.ml-10 {
+    margin-left: 10px;
+}
+
+.gitlab-focusable-link {
+    color:black;
+    cursor: pointer;
+}
+
+.gitlab-focusable-link:hover {
+    text-decoration: none;
+}
+
 .gitlab-avatar {
     width: 25px;
     height: 25px;

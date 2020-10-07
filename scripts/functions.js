@@ -42,7 +42,7 @@ function displayElement(param) {
         param.forEach(p => {
             document.getElementById(p).style.display = 'block';
         })
-    } else {
+    } else {
         document.getElementById(param).style.display = 'block';
     }
 }

@@ -647,6 +647,7 @@ function updateGitlabTab() {
 
             let headers = new Headers()
             headers.append('PRIVATE-TOKEN', data.gitlab.user.token)
+            let getOptions = {method: 'GET', headers: headers}
             let elementsToDisplay = [];
             data.gitlab.user.groups.forEach( group => {
                 elementsToDisplay.push({
@@ -654,11 +655,7 @@ function updateGitlabTab() {
                     name: group.name,
                     projects: []
                 })
-                fetch('https://gitlab.com/api/v4/groups/' + group.id + '/projects', {
-                method: 'GET',
-                headers: headers
-            })
-                .then(res => res.json())
+                executeRequest('https://gitlab.com/api/v4/groups/' + group.id + '/projects', getOptions)
                 .then(res => {
                     if (res) {
                         let projects = [];
@@ -669,11 +666,7 @@ function updateGitlabTab() {
                                 mr: []
                             })
                         })
-                        fetch('https://gitlab.com/api/v4/groups/' + group.id + '/merge_requests?state=opened', {
-                            method: 'GET',
-                            headers: headers
-                        })
-                            .then(mr => mr.json())
+                        executeRequest('https://gitlab.com/api/v4/groups/' + group.id + '/merge_requests?state=opened', getOptions)
                             .then(mrs => {
                                 mrs.forEach((mr) => {
                                     if (mr.merged_by == null) {
@@ -697,11 +690,7 @@ function updateGitlabTab() {
                                                     mr: []
                                                 })
                                             project.mr.forEach((mr) => {
-                                                fetch('https://gitlab.com/api/v4/projects/' + mr.project_id + '/merge_requests/' + mr.iid + '/award_emoji', {
-                                                    method: 'GET',
-                                                    headers: headers
-                                                })
-                                                    .then(awards => awards.json())
+                                                executeRequest('https://gitlab.com/api/v4/projects/' + mr.project_id + '/merge_requests/' + mr.iid + '/award_emoji', getOptions)
                                                     .then(awards => {
                                                         let fill = 'fill: black;'
                                                         let fill_down = 'fill: black;'
@@ -731,7 +720,7 @@ function updateGitlabTab() {
                                                                 },
                                                                 data_award_id_down: data_award_id_down,
                                                                 data_award_id_down_render: function() {
-                                                                    if (this.data_award_id_up !== null) {
+                                                                    if (this.data_award_id_down !== null) {
                                                                         return `data-awardid="${this.data_award_id_down}"`
                                                                     }
                                                                     return "data-awardid"
@@ -869,22 +858,17 @@ function updateGitlabTab() {
                                                 displayElement(['showComments', 'showCommentsLoading']);
                                                 dontDisplayElement('connected');
 
-                                                fetch(`https://gitlab.com/api/v4/projects/${element.dataset.projectid}/merge_requests/${element.dataset.iid}/discussions`, {
-                                                    method: 'GET',
-                                                    headers: headers
-                                                })
-                                                    .then(data => data.json())
+                                                executeRequest(`https://gitlab.com/api/v4/projects/${element.dataset.projectid}/merge_requests/${element.dataset.iid}/discussions`, getOptions)
                                                     .then(comments => {
                                                         if (comments.length === 0) {
                                                             document.getElementById('showCommentsContainer').innerHTML = "Pas de commentaires sur la merge request."
                                                         }
-                                                        document.getElementById('showCommentsLoading').style.display = "none"
+                                                        dontDisplayElement('showCommentsLoading')
                                                         let ids_resolve = []
                                                         let reader = new commonmark.Parser();
                                                         let writer = new commonmark.HtmlRenderer();
                                                         comments.filter(i => i.individual_note === false).forEach(comment => {
                                                             let isFirstNote = true
-                                                            console.log(comment)
                                                             comment.notes.filter (a => a.system === false).forEach(note => {
                                                                 if (isFirstNote) {
                                                                     isFirstNote = false
@@ -948,8 +932,7 @@ function updateGitlabTab() {
  * Effectue une recherche de nouvelle version du plugin et envois une notification quand c'est le cas.
  */
 function checkForUpdate() {
-    fetch("https://brodaleegitlabplugin.herokuapp.com/?version=last")
-        .then(res => res.json())
+    executeRequest("https://brodaleegitlabplugin.herokuapp.com/?version=last")
         .then(res => {
             if (res.last_version) {
                 if (manifest.version < res.last_version) {
