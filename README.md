@@ -65,9 +65,10 @@ Sélectionnez le dossier contenant tout le code source.
 ## TODOS
 
 - Gitlab Tab : 
-    - Répondre à des commentaires.
+    - Envoyer un commentaire.
     - Lire le markdown des commentaires. (OK)
     - Appliquer des suggestions.
+    - Voir la diff.
 - Jira Tab :
     - S'assigner un ticket dans le sprint.
 - Application
@@ -76,4 +77,4 @@ Sélectionnez le dossier contenant tout le code source.
 - JSE Tab (Jira Search Engine)
     - Sortir la Tab.
     - S'attribuer un ticket dans le backlog.
-    - Changer le status d'un ticket qui nous est assigné.
+    - Changer le status d'un ticket qui nous est assigné dans le backlog.
