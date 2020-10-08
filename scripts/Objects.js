@@ -48,6 +48,15 @@ class Navigator {
         }
     }
 
+    download(doc) {
+        switch (this.getNavigator()) {
+            case 'chome':
+                chrome.downloads.download({url: doc, filename: 'data.json', saveAs: true})
+            case 'firefox':
+                browser.downloads.download({url: doc, filename: 'data.json'});
+        }
+    }
+
     getUrlOf(fileName) {
         switch (this.getNavigator()) {
             case 'chome':
