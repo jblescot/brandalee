@@ -6,3 +6,14 @@ const Config = {
 };
 
 let USED_CONFIG = {};
+
+let MESSAGES = {
+    notifications: {
+        saved: {title: 'Configuration sauvergardé', message: 'La nouvelle configuration à bien été sauvegardé.'},
+        jiraMustConnect: {title: 'Jira', message: 'Vous devez vous connecter avant d\'utiliser cette fonctionnalité.'},
+        update: {title: 'Mise à jour', message: 'Vous pouvez mettre a jour Jirlab !'}
+    },
+    errors: {
+        bad_format_mr: 'Attention, le format du titre est incorrect. Voici un exemple : \n feature/ABCD-1234 nom_du_ticket'
+    }
+}

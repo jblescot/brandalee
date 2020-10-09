@@ -78,3 +78,13 @@ function getUrlParams() {
     }
     return params;
 }
+
+/**
+ * Retourne la valeur d'un élément du DOM selon son ID.
+ *
+ * @param id id de l'élément.
+ * @returns {null|String|undefined}
+ */
+function getValueOfDomId(id) {
+    return document.getElementById(id)?.value
+}

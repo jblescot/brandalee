@@ -65,9 +65,6 @@ const Regexes = {
     SECOND_ASAP_FORMAT: /(.*)_[0-9]+\/(.*)\/[a-zA-Z]+-[0-9]+(.*)/,
     TICKET_NUMBER: /[0-9]+/
 };
-const Error = {
-    BAD_FORMAT_MR: "Attention, le format du titre est incorrect. Voici un exemple : \n feature/ABCD-1234 nom_du_ticket"
-};
 let NOTIFICATIONS = {}
 
 /*********************************** */
@@ -93,12 +90,12 @@ const btn_validate_config = document.getElementById('validate_config');
 
 if (btn_validate_config) {
     btn_validate_config.addEventListener('click', function () {
-        USED_CONFIG.MIN_APPROVAL_NUMBER = parseInt(document.getElementById('nb_approval').value);
-        USED_CONFIG.GROUP_NAME = document.getElementById('group_name').value
-        USED_CONFIG.MERGE_POSSIBLE_COLOR = document.getElementById('cmp').value
-        USED_CONFIG.MERGE_NEED_VOTES = document.getElementById('cmnv').value
+        USED_CONFIG.MIN_APPROVAL_NUMBER = parseInt(getValueOfDomId('nb_approval'));
+        USED_CONFIG.GROUP_NAME = getValueOfDomId('group_name')
+        USED_CONFIG.MERGE_POSSIBLE_COLOR = getValueOfDomId('cmp')
+        USED_CONFIG.MERGE_NEED_VOTES = getValueOfDomId('cmnv')
         navigator.store({configuration: USED_CONFIG})
-        navigator.sendNotification('Configuration sauvergardé', 'La nouvelle configuration à bien été sauvegardé.')
+        navigator.sendNotification(MESSAGES.notifications.saved.title, MESSAGES.notifications.saved.message)
     });
 }
 
@@ -256,7 +253,7 @@ function initConfigurationTab() {
  * @param {Array} issues
  */
 function applyFilterForJSE(issues) {
-    let searched_word = document.getElementById('field_jse_name').value.split(' ')
+    let searched_word = getValueOfDomId('field_jse_name').split(' ')
     let issuesFilteredByKey = []
     let issuesFilteredByTitle = []
     let issuedFilteredByDescription = []
@@ -344,7 +341,7 @@ function initPopUp() {
                 dontDisplayElement(['container_configuration', 'container_gitlab', 'container_jira'])
                 displayElement('container_jse')
             } else {
-                navigator.sendNotification('Jira', 'Vous devez vous connecter avant d\'utiliser cette fonctionnalité.')
+                navigator.sendNotification(MESSAGES.notifications.jiraMustConnect.title, MESSAGES.notifications.jiraMustConnect.message)
             }
         })
     })
@@ -380,7 +377,7 @@ function initPopUp() {
     let jiraIssues = []
     if (document.getElementsByClassName('field_jse_name'))
         document.getElementById('jse_search_btn').addEventListener('click', function(e) {
-            let searched_text = document.getElementById('field_jse_name').value
+            let searched_text = getValueOfDomId('field_jse_name')
             document.getElementById('jse_search_btn').disabled = "disabled"
             document.getElementById('jse_search_btn').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>'
             if (!hasAlreadyDidRequest) {
@@ -413,7 +410,7 @@ function initPopUp() {
     document.getElementById('validate_gitlab_token').addEventListener('click', function (e) {
         e.target.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Chargement...'
         let headers = new Headers()
-        headers.append('PRIVATE-TOKEN', document.getElementById('token_gitlab').value)
+        headers.append('PRIVATE-TOKEN', getValueOfDomId('token_gitlab'))
         fetch("https://gitlab.com/api/v4/personal_access_tokens", {
             method: 'GET',
             headers: headers
@@ -438,7 +435,7 @@ function initPopUp() {
                                 .then(groups => groups.json())
                                 .then(groups => {
                                     if (groups) {
-                                        user.token = document.getElementById('token_gitlab').value
+                                        user.token = getValueOfDomId('token_gitlab')
                                         user.groups = groups
                                         last_token.user = user
                                         navigator.store({gitlab: last_token})
@@ -561,8 +558,8 @@ function updateJiraTab() {
     })
     document.getElementById('jira_connexion').addEventListener('click', function(e) {
         e.target.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Chargement...'
-        let token = document.getElementById('jira_token_auth').value
-        let email = document.getElementById('jira_email_auth').value
+        let token = getValueOfDomId('jira_token_auth')
+        let email = getValueOfDomId('jira_email_auth')
         let encodedCredentials = btoa(`${email}:${token}`)
         let headers = new Headers()
         headers.append('Authorization', `Basic ${encodedCredentials}`)
@@ -956,13 +953,13 @@ function checkForUpdate() {
                 if (manifest.version < res.last_version) {
                     navigator.getFromStore('lastupdatedate', function (res) {
                         if (!res.lastupdatedate) {
-                            navigator.sendNotification('Mise a jour', 'Vous pouvez mettre a jour le SmagJira plugin !')
+                            navigator.sendNotification(MESSAGES.notifications.update.title, MESSAGES.notifications.update.message)
                             navigator.store({lastupdatedate: Date.now()})
                         } else {
                             let date = new Date(res.lastupdatedate)
                             let now = new Date(Date.now())
                             if ((now.getHours() - date.getHours()) > 1) {
-                                navigator.sendNotification('Mise a jour', 'Vous pouvez mettre a jour le SmagJira plugin !')
+                                navigator.sendNotification(MESSAGES.notifications.update.title, MESSAGES.notifications.update.message)
                                 navigator.store({lastupdatedate: Date.now()})
                             }
                         }
@@ -1141,7 +1138,7 @@ function controlMergeTitle() {
         validate_btn.addEventListener('click', function (e) {
             let matches = field_title.value.match(Regexes.MR_TITLE);
             if (!matches) {
-                alert(Error.BAD_FORMAT_MR);
+                alert(MESSAGES.errors.bad_format_mr);
             }
         });
     }
