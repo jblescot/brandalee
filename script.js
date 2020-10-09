@@ -349,6 +349,24 @@ function initPopUp() {
         })
     })
 
+    // Récupération des informations personnel.
+    document.getElementById('own_data').addEventListener('click', () => {
+        navigator.getFromStore('gitlab', (dataGit) => {
+            navigator.getFromStore('jira', (dataJira) => {
+                navigator.getFromStore('configuration', (dataConfig) => {
+                    let identity = {
+                        gitlab: dataGit,
+                        configuration: dataConfig,
+                        jira: dataJira
+                    }
+                    let doc = URL.createObjectURL( new Blob([JSON.stringify(identity)], {type: 'application/json'}))
+                    navigator.download(doc)
+                })
+            })
+        })
+    })
+
+    // Rechargement des données gitlab & jira.
     document.getElementById('reload').addEventListener('click', (e) => {
         document.getElementById('turn').classList.add('rotate')
         updateGitlabTab()
