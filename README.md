@@ -74,6 +74,7 @@ Sélectionnez le dossier contenant tout le code source.
 - Application
     - Améliorer l'UI / code.
     - Créer un système de MAJ automatique (voir si possible).
+    - Télécharger les données personnel. (OK)
 - JSE Tab (Jira Search Engine)
     - Sortir la Tab.
     - S'attribuer un ticket dans le backlog.
