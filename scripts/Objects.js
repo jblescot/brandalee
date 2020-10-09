@@ -32,7 +32,7 @@ class Notification {
         browser.notifications.create('Update', {
             type: "basic",
             iconUrl: './favicon.ico',
-            title: tiitle,
+            title: title,
             message: message
         })
     }
