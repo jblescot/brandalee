@@ -411,6 +411,7 @@ function initPopUp() {
         e.target.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Chargement...'
         let headers = new Headers()
         headers.append('PRIVATE-TOKEN', getValueOfDomId('token_gitlab'))
+        headers.append('Access-Control-Allow-Origin', '*')
         fetch("https://gitlab.com/api/v4/personal_access_tokens", {
             method: 'GET',
             headers: headers
