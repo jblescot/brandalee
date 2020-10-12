@@ -32,7 +32,7 @@ class Notification {
         browser.notifications.create('Update', {
             type: "basic",
             iconUrl: './favicon.ico',
-            title: tiitle,
+            title: title,
             message: message
         })
     }
@@ -45,6 +45,24 @@ class Navigator {
                 return ManifestNavigator.getChromeManifest();
             case 'firefox':
                 return ManifestNavigator.getFirefoxManifest();
+        }
+    }
+
+    download(doc) {
+        switch (this.getNavigator()) {
+            case 'chome':
+                chrome.downloads.download({url: doc, filename: 'data.json', saveAs: true})
+            case 'firefox':
+                browser.downloads.download({url: doc, filename: 'data.json'});
+        }
+    }
+
+    getUrlOf(fileName) {
+        switch (this.getNavigator()) {
+            case 'chome':
+                return chrome.runtime.getURL(fileName)
+            case 'firefox':
+                return browser.extension.getURL(fileName);
         }
     }
 

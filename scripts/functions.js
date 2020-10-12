@@ -42,7 +42,7 @@ function displayElement(param) {
         param.forEach(p => {
             document.getElementById(p).style.display = 'block';
         })
-    } else {
+    } else {
         document.getElementById(param).style.display = 'block';
     }
 }
@@ -77,4 +77,14 @@ function getUrlParams() {
         params[pair[0]] = decodeURIComponent(pair[1]);
     }
     return params;
+}
+
+/**
+ * Retourne la valeur d'un élément du DOM selon son ID.
+ *
+ * @param id id de l'élément.
+ * @returns {null|String|undefined}
+ */
+function getValueOfDomId(id) {
+    return document.getElementById(id)?.value
 }

@@ -57,6 +57,7 @@ Sélectionnez le dossier contenant tout le code source.
     - functions.js => Cumul de fonctions utilisable partout dans l'application.
     - Objects.js => Objets utilitaires pour l'application.
     - vars.js => Variables utilisables partout dans l'application.
+- tpl (Contient des templates d'item de liste)
 - script.js => C'est là que le tout se passe dans l'application.
 - popup.html => Interface de l'application.
 - manifest.json => Fichier de configuration (Ne pas toucher).
@@ -64,15 +65,17 @@ Sélectionnez le dossier contenant tout le code source.
 ## TODOS
 
 - Gitlab Tab : 
-    - Répondre à des commentaires.
+    - Envoyer un commentaire.
     - Lire le markdown des commentaires. (OK)
     - Appliquer des suggestions.
+    - Voir la diff.
 - Jira Tab :
     - S'assigner un ticket dans le sprint.
 - Application
     - Améliorer l'UI / code.
     - Créer un système de MAJ automatique (voir si possible).
+    - Télécharger les données personnel. (OK)
 - JSE Tab (Jira Search Engine)
     - Sortir la Tab.
     - S'attribuer un ticket dans le backlog.
-    - Changer le status d'un ticket qui nous est assigné.
+    - Changer le status d'un ticket qui nous est assigné dans le backlog.

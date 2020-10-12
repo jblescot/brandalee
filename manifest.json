@@ -1,8 +1,8 @@
 {
     "manifest_version": 2,
     "name": "Smag Jirlab extension",
-    "version": "0.5.1",
-    "permissions": ["activeTab", "tabs", "contextMenus", "storage", "notifications", "https://brodaleegitlabplugin.herokuapp.com/*", "https://gitlab.com/*"],
+    "version": "0.5.2",
+    "permissions": ["activeTab", "tabs", "downloads", "contextMenus", "storage", "notifications", "https://smag-jira.atlassian.net/", "https://brodaleegitlabplugin.herokuapp.com/*", "https://gitlab.com/*"],
     "content_scripts": [
       {
         "matches": ["<all_urls>"],

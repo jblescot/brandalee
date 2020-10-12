@@ -10,18 +10,37 @@ let GITLAB_MERGE_REQUEST_TEMPLATE = ""
 let JIRA_JSE_TEMPLATE = ""
 
 /**
+ * Charge le contenu d'un fichier et appel une callback en passant le textContent en paramètre.
+ *
+ * @param {String} fileName
+ * @param {$Call} callback
+ */
+function loadFileContent(fileName, callback) {
+    let url = navigator.getUrlOf(`tpl/${fileName}`)
+    fetch(url).then(res => res.blob()).then(blob => blob.text()).then(text => {callback(text)})
+}
+
+/**
  * Initialise les variables de template.
  */
 function initTemplateVars() {
-    if (document.getElementById('templates') && body.dataset.type && body.dataset.type === 'plugin') {
-        JIRA_TICKET_TEMPLATE = document.getElementById('templates').dataset.jiraticket
-        JIRA_SCRUMB_BOARD_CHOICE_TEMPLATE = document.getElementById('templates').dataset.scrumboardchoice
-        GITLAB_MERGE_REQUEST_TEMPLATE = document.getElementById('templates').dataset.gitlabmergerequest
-        JIRA_JSE_TEMPLATE = document.getElementById('templates').dataset.jirajse
+    if (body.dataset.type && body.dataset.type === 'plugin') {
+        loadFileContent('jira_ticket.tpl', (text) => {
+            JIRA_TICKET_TEMPLATE = text
+        })
+        loadFileContent('gitlab_merge_request.tpl', (text) => {
+            GITLAB_MERGE_REQUEST_TEMPLATE = text
+        })
+        loadFileContent('jira_jse.tpl', (text) => {
+            JIRA_JSE_TEMPLATE = text
+        })
+        loadFileContent('scrum_board_choice.tpl', (text) => {
+            JIRA_SCRUMB_BOARD_CHOICE_TEMPLATE = text
+        })
     }
 }
 
-initTemplateVars()
+initTemplateVars();
 
 /*********************************** */
 
@@ -45,9 +64,6 @@ const Regexes = {
     FIRST_ASAP_FORMAT: /(.*)\/[a-zA-Z]+_[0-9]+/,
     SECOND_ASAP_FORMAT: /(.*)_[0-9]+\/(.*)\/[a-zA-Z]+-[0-9]+(.*)/,
     TICKET_NUMBER: /[0-9]+/
-};
-const Error = {
-    BAD_FORMAT_MR: "Attention, le format du titre est incorrect. Voici un exemple : \n feature/ABCD-1234 nom_du_ticket"
 };
 let NOTIFICATIONS = {}
 
@@ -74,12 +90,12 @@ const btn_validate_config = document.getElementById('validate_config');
 
 if (btn_validate_config) {
     btn_validate_config.addEventListener('click', function () {
-        USED_CONFIG.MIN_APPROVAL_NUMBER = parseInt(document.getElementById('nb_approval').value);
-        USED_CONFIG.GROUP_NAME = document.getElementById('group_name').value
-        USED_CONFIG.MERGE_POSSIBLE_COLOR = document.getElementById('cmp').value
-        USED_CONFIG.MERGE_NEED_VOTES = document.getElementById('cmnv').value
+        USED_CONFIG.MIN_APPROVAL_NUMBER = parseInt(getValueOfDomId('nb_approval'));
+        USED_CONFIG.GROUP_NAME = getValueOfDomId('group_name')
+        USED_CONFIG.MERGE_POSSIBLE_COLOR = getValueOfDomId('cmp')
+        USED_CONFIG.MERGE_NEED_VOTES = getValueOfDomId('cmnv')
         navigator.store({configuration: USED_CONFIG})
-        navigator.sendNotification('Configuration sauvergardé', 'La nouvelle configuration à bien été sauvegardé.')
+        navigator.sendNotification(MESSAGES.notifications.saved.title, MESSAGES.notifications.saved.message)
     });
 }
 
@@ -237,7 +253,7 @@ function initConfigurationTab() {
  * @param {Array} issues
  */
 function applyFilterForJSE(issues) {
-    let searched_word = document.getElementById('field_jse_name').value.split(' ')
+    let searched_word = getValueOfDomId('field_jse_name').split(' ')
     let issuesFilteredByKey = []
     let issuesFilteredByTitle = []
     let issuedFilteredByDescription = []
@@ -325,11 +341,29 @@ function initPopUp() {
                 dontDisplayElement(['container_configuration', 'container_gitlab', 'container_jira'])
                 displayElement('container_jse')
             } else {
-                navigator.sendNotification('Jira', 'Vous devez vous connecter avant d\'utiliser cette fonctionnalité.')
+                navigator.sendNotification(MESSAGES.notifications.jiraMustConnect.title, MESSAGES.notifications.jiraMustConnect.message)
             }
         })
     })
 
+    // Récupération des informations personnel.
+    document.getElementById('own_data').addEventListener('click', () => {
+        navigator.getFromStore('gitlab', (dataGit) => {
+            navigator.getFromStore('jira', (dataJira) => {
+                navigator.getFromStore('configuration', (dataConfig) => {
+                    let identity = {
+                        gitlab: dataGit,
+                        configuration: dataConfig,
+                        jira: dataJira
+                    }
+                    let doc = URL.createObjectURL( new Blob([JSON.stringify(identity)], {type: 'application/json'}))
+                    navigator.download(doc)
+                })
+            })
+        })
+    })
+
+    // Rechargement des données gitlab & jira.
     document.getElementById('reload').addEventListener('click', (e) => {
         document.getElementById('turn').classList.add('rotate')
         updateGitlabTab()
@@ -343,7 +377,7 @@ function initPopUp() {
     let jiraIssues = []
     if (document.getElementsByClassName('field_jse_name'))
         document.getElementById('jse_search_btn').addEventListener('click', function(e) {
-            let searched_text = document.getElementById('field_jse_name').value
+            let searched_text = getValueOfDomId('field_jse_name')
             document.getElementById('jse_search_btn').disabled = "disabled"
             document.getElementById('jse_search_btn').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>'
             if (!hasAlreadyDidRequest) {
@@ -376,7 +410,8 @@ function initPopUp() {
     document.getElementById('validate_gitlab_token').addEventListener('click', function (e) {
         e.target.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Chargement...'
         let headers = new Headers()
-        headers.append('PRIVATE-TOKEN', document.getElementById('token_gitlab').value)
+        headers.append('PRIVATE-TOKEN', getValueOfDomId('token_gitlab'))
+        headers.append('Access-Control-Allow-Origin', '*')
         fetch("https://gitlab.com/api/v4/personal_access_tokens", {
             method: 'GET',
             headers: headers
@@ -401,7 +436,7 @@ function initPopUp() {
                                 .then(groups => groups.json())
                                 .then(groups => {
                                     if (groups) {
-                                        user.token = document.getElementById('token_gitlab').value
+                                        user.token = getValueOfDomId('token_gitlab')
                                         user.groups = groups
                                         last_token.user = user
                                         navigator.store({gitlab: last_token})
@@ -524,8 +559,8 @@ function updateJiraTab() {
     })
     document.getElementById('jira_connexion').addEventListener('click', function(e) {
         e.target.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Chargement...'
-        let token = document.getElementById('jira_token_auth').value
-        let email = document.getElementById('jira_email_auth').value
+        let token = getValueOfDomId('jira_token_auth')
+        let email = getValueOfDomId('jira_email_auth')
         let encodedCredentials = btoa(`${email}:${token}`)
         let headers = new Headers()
         headers.append('Authorization', `Basic ${encodedCredentials}`)
@@ -628,13 +663,15 @@ function updateGitlabTab() {
 
             let headers = new Headers()
             headers.append('PRIVATE-TOKEN', data.gitlab.user.token)
-
+            let getOptions = {method: 'GET', headers: headers}
+            let elementsToDisplay = [];
             data.gitlab.user.groups.forEach( group => {
-                fetch('https://gitlab.com/api/v4/groups/' + group.id + '/projects', {
-                method: 'GET',
-                headers: headers
-            })
-                .then(res => res.json())
+                elementsToDisplay.push({
+                    id: group.id,
+                    name: group.name,
+                    projects: []
+                })
+                executeRequest('https://gitlab.com/api/v4/groups/' + group.id + '/projects', getOptions)
                 .then(res => {
                     if (res) {
                         let projects = [];
@@ -645,20 +682,13 @@ function updateGitlabTab() {
                                 mr: []
                             })
                         })
-                        fetch('https://gitlab.com/api/v4/groups/' + group.id + '/merge_requests?state=opened', {
-                            method: 'GET',
-                            headers: headers
-                        })
-                            .then(mr => mr.json())
+                        executeRequest('https://gitlab.com/api/v4/groups/' + group.id + '/merge_requests?state=opened', getOptions)
                             .then(mrs => {
                                 mrs.forEach((mr) => {
                                     if (mr.merged_by == null) {
                                         projects.find(i => i.id === mr.project_id).mr.push(mr)
                                     }
                                 })
-                                dontDisplayElement('gitlab_loading')
-                                document.getElementById('connected').innerHTML = '';
-                                document.getElementById('connected').innerHTML += '<h3 class="text-center">' + group.name + '</h3><br>';
                                 let ids = [];
                                 (new Promise(resolve => {
                                     let state_count = 0;
@@ -668,71 +698,78 @@ function updateGitlabTab() {
                                     })
                                     projects.forEach((project) => {
                                         if (project.mr.length > 0) {
-                                            let display_title = true
-                                            project.mr.forEach((mr) => {
-                                                fetch('https://gitlab.com/api/v4/projects/' + mr.project_id + '/merge_requests/' + mr.iid + '/award_emoji', {
-                                                    method: 'GET',
-                                                    headers: headers
+                                            elementsToDisplay.find(e => e.id === group.id)
+                                                .projects
+                                                .push({
+                                                    id: project.id,
+                                                    name: project.name,
+                                                    mr: []
                                                 })
-                                                    .then(awards => awards.json())
+                                            project.mr.forEach((mr) => {
+                                                executeRequest('https://gitlab.com/api/v4/projects/' + mr.project_id + '/merge_requests/' + mr.iid + '/award_emoji', getOptions)
                                                     .then(awards => {
-                                                        if (display_title) {
-                                                            display_title = false
-                                                            document.getElementById('connected').innerHTML += '<h4 class="text-center">' + project.name + '</h4><br>';
-                                                            document.getElementById('connected').innerHTML += '<div style="margin-top: -10%;">';
-                                                        }
                                                         let fill = 'fill: black;'
                                                         let fill_down = 'fill: black;'
-                                                        let data_award_id_up = "data-awardid"
-                                                        let data_award_id_down = "data-awardid"
+                                                        let data_award_id_up = null
+                                                        let data_award_id_down = null
                                                         let th = awards.find(i => i.user.id === data.gitlab.user.id && i.name === "thumbsup");
                                                         if (th != null) {
                                                             fill = 'fill: gold;';
-                                                            data_award_id_up += '="'+th.id+'"'
+                                                            data_award_id_up += th.id
                                                         }
                                                         let down_th = awards.find(i => i.user.id === data.gitlab.user.id && i.name === "thumbsdown")
                                                         if (down_th) {
-                                                            data_award_id_down += '="'+down_th.id+'"'
+                                                            data_award_id_down += down_th.id
                                                             fill_down = 'fill: gold;'
                                                         }
-                                                        /*document.getElementById('connected').innerHTML += Mustache.render(GITLAB_MERGE_REQUEST_TEMPLATE, {
-                                                            mrUpvotes: mr.upvotes,
-                                                            mrDownvotes: mr.downvotes,
-                                                            mrIid: mr.iid,
-                                                            mrAuthorAvatar_url: mr.author.avatar_url,
-                                                            mrProject_id: mr.project_id,
-                                                            fill: fill,
-                                                            fill_down: fill_down,
-                                                            mrWeb_url: mr.web_url,
-                                                            mrTitle: mr.title,
-                                                            mrId: mr.id,
-                                                            mrUser_notes_count: mr.user_notes_count
-                                                        })*/
-                                                        document.getElementById('connected').innerHTML += '<p class="text-left" style="font-size: 12px;">';
-                                                        document.getElementById('connected').innerHTML += '<img style="width: 25px; height: 25px; margin-right: 10px;" src="' + mr.author.avatar_url + '" />';
-                                                        document.getElementById('connected').innerHTML += '<span id="th_up_'+mr.id+'">' + mr.upvotes + '</span> <svg data-iid="'+mr.iid+'" data-projectid="'+mr.project_id+'" '+data_award_id_up+' id="up_' + mr.id + '" style="width:15px; height: 15px;' + fill + '" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4 5L8.586.414a1.414 1.414 0 0 1 2.414 1V5h2.991a2 2 0 0 1 1.928 2.531l-1.248 4.532A4 4 0 0 1 10.814 15H0V5h4zm5-2.172V7h4.991l-1.249 4.531A2 2 0 0 1 10.814 13H5V6.828l4-4zM3 7H2v6h1V7z"></path></svg>';
-                                                        document.getElementById('connected').innerHTML += ' / ';
-                                                        document.getElementById('connected').innerHTML += '<span id="th_down_'+mr.id+'">' + mr.downvotes + '</span> <svg data-iid="'+mr.iid+'" data-projectid="'+mr.project_id+'" '+data_award_id_down+' id="down_' + mr.id + '" style="width:15px; height: 15px;' + fill_down + '" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4 11H0V1h10.814a4 4 0 0 1 3.857 2.937l1.248 4.532A2 2 0 0 1 13.991 11H11v3.586a1.414 1.414 0 0 1-2.414 1L4 11zm1-1.828l4 4V9h4.991l-1.249-4.531A2 2 0 0 0 10.814 3H5v6.172zM3 3H2v6h1V3z"></path></svg>';
-                                                        document.getElementById('connected').innerHTML += ' / ';
-                                                        document.getElementById('connected').innerHTML += mr.user_notes_count + ' <svg style="width:15px; height: 15px;" viewBox="0 0 16 16" data-iid="'+mr.iid+'" data-projectid="'+mr.project_id+'" id="comment_'+mr.id+'" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4 10.41l-2.5 1.445A1 1 0 0 1 0 10.99V2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v8.99a1 1 0 0 1-1.5.865L11.29 14H6a2 2 0 0 1-2-2v-1.59zM4 8.1L2 9.258V2h8v2H6a2 2 0 0 0-2 2v2.1zM6 12h5.825L14 13.257V6H6v6z"></path></svg>';
-
-                                                        if (mr.author.id === data.gitlab.user.id && mr.downvotes === 0 && mr.upvotes >= USED_CONFIG.MIN_APPROVAL_NUMBER) {
-                                                            document.getElementById('connected').innerHTML += "    "
-                                                            document.getElementById('connected').innerHTML += `<button data-id="${mr.project_id}" data-mriid="${mr.iid}" id="accept_mr_${mr.id}" class="btn btn-success">Merge</button>`
-                                                        }
-                                                        document.getElementById('connected').innerHTML += '<span style="font-size: 14px; margin-left: 10px;"> <a data-link="' + mr.web_url + '" id="' + mr.id + '" style="color:black; cursor: grab;">' + mr.title + '</a></span>';
-                                                        document.getElementById('connected').innerHTML += '</p>';
+                                                        elementsToDisplay.find(g => g.id === group.id)
+                                                            .projects.find(p => p.id === project.id)
+                                                            .mr.push({
+                                                                mrUpvotes: mr.upvotes,
+                                                                mrDownvotes: mr.downvotes,
+                                                                data_award_id_up: data_award_id_up,
+                                                                data_award_id_up_render: function() {
+                                                                    if (this.data_award_id_up !== null) {
+                                                                        return `data-awardid="${this.data_award_id_up}"`
+                                                                    }
+                                                                    return "data-awardid"
+                                                                },
+                                                                data_award_id_down: data_award_id_down,
+                                                                data_award_id_down_render: function() {
+                                                                    if (this.data_award_id_down !== null) {
+                                                                        return `data-awardid="${this.data_award_id_down}"`
+                                                                    }
+                                                                    return "data-awardid"
+                                                                },
+                                                                mrIid: mr.iid,
+                                                                mrAuthorAvatar_url: mr.author.avatar_url,
+                                                                mrProject_id: mr.project_id,
+                                                                fill: fill,
+                                                                fill_down: fill_down,
+                                                                mrWeb_url: mr.web_url,
+                                                                mrTitle: mr.title,
+                                                                mrId: mr.id,
+                                                                mrUser_notes_count: mr.user_notes_count,
+                                                                mergeBtn: function() {
+                                                                    if (this.canMerge) {
+                                                                        return `<button data-id="${this.mrProject_id}" data-mriid="${this.mrIid}" id="accept_mr_${this.mrId}" class="btn btn-success">Merge</button>`
+                                                                    }
+                                                                    return ""
+                                                                },
+                                                                canMerge: mr.author.id === data.gitlab.user.id && mr.downvotes === 0 && mr.upvotes >= USED_CONFIG.MIN_APPROVAL_NUMBER
+                                                            })
                                                         ids.push(`${mr.id}`);
                                                         state_count++;
                                                         if (state_count === max_state_count) {
+                                                            document.getElementById('connected').innerHTML = Mustache.render(GITLAB_MERGE_REQUEST_TEMPLATE, {groups: elementsToDisplay})
                                                             resolve(true)
                                                         }
                                                     });
                                             });
-                                            document.getElementById('connected').innerHTML += '</div>';
                                         }
                                     });
                                 })).then(resolve => {
+                                    dontDisplayElement('gitlab_loading')
                                     ids.forEach((id) => {
                                         if (document.getElementById(id))
                                             document.getElementById(id).addEventListener('click', function (e) {
@@ -837,22 +874,17 @@ function updateGitlabTab() {
                                                 displayElement(['showComments', 'showCommentsLoading']);
                                                 dontDisplayElement('connected');
 
-                                                fetch(`https://gitlab.com/api/v4/projects/${element.dataset.projectid}/merge_requests/${element.dataset.iid}/discussions`, {
-                                                    method: 'GET',
-                                                    headers: headers
-                                                })
-                                                    .then(data => data.json())
+                                                executeRequest(`https://gitlab.com/api/v4/projects/${element.dataset.projectid}/merge_requests/${element.dataset.iid}/discussions`, getOptions)
                                                     .then(comments => {
                                                         if (comments.length === 0) {
                                                             document.getElementById('showCommentsContainer').innerHTML = "Pas de commentaires sur la merge request."
                                                         }
-                                                        document.getElementById('showCommentsLoading').style.display = "none"
+                                                        dontDisplayElement('showCommentsLoading')
                                                         let ids_resolve = []
                                                         let reader = new commonmark.Parser();
                                                         let writer = new commonmark.HtmlRenderer();
                                                         comments.filter(i => i.individual_note === false).forEach(comment => {
                                                             let isFirstNote = true
-                                                            console.log(comment)
                                                             comment.notes.filter (a => a.system === false).forEach(note => {
                                                                 if (isFirstNote) {
                                                                     isFirstNote = false
@@ -916,20 +948,19 @@ function updateGitlabTab() {
  * Effectue une recherche de nouvelle version du plugin et envois une notification quand c'est le cas.
  */
 function checkForUpdate() {
-    fetch("https://brodaleegitlabplugin.herokuapp.com/?version=last")
-        .then(res => res.json())
+    executeRequest("https://brodaleegitlabplugin.herokuapp.com/?version=last")
         .then(res => {
             if (res.last_version) {
                 if (manifest.version < res.last_version) {
                     navigator.getFromStore('lastupdatedate', function (res) {
                         if (!res.lastupdatedate) {
-                            navigator.sendNotification('Mise a jour', 'Vous pouvez mettre a jour le SmagJira plugin !')
+                            navigator.sendNotification(MESSAGES.notifications.update.title, MESSAGES.notifications.update.message)
                             navigator.store({lastupdatedate: Date.now()})
                         } else {
                             let date = new Date(res.lastupdatedate)
                             let now = new Date(Date.now())
                             if ((now.getHours() - date.getHours()) > 1) {
-                                navigator.sendNotification('Mise a jour', 'Vous pouvez mettre a jour le SmagJira plugin !')
+                                navigator.sendNotification(MESSAGES.notifications.update.title, MESSAGES.notifications.update.message)
                                 navigator.store({lastupdatedate: Date.now()})
                             }
                         }
@@ -1108,7 +1139,7 @@ function controlMergeTitle() {
         validate_btn.addEventListener('click', function (e) {
             let matches = field_title.value.match(Regexes.MR_TITLE);
             if (!matches) {
-                alert(Error.BAD_FORMAT_MR);
+                alert(MESSAGES.errors.bad_format_mr);
             }
         });
     }
