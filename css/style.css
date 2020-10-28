@@ -95,7 +95,7 @@ li:hover {
     margin-top: 15px;
 }
 
-#showComments, #jira_not_connected_scrum_board_choices, #jira_connected {
+#showComments, #jira_not_connected_scrum_board_choices, #jira_connected, #showDiff {
     max-height: 400px;
     overflow-x: hidden;
     overflow-y: auto;

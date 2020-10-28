@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
-    "name": "Smag Jirlab extension",
-    "version": "0.5.2",
+    "name": "Smag Jirlab",
+    "version": "0.5.3",
     "permissions": ["activeTab", "tabs", "downloads", "contextMenus", "storage", "notifications", "https://smag-jira.atlassian.net/", "https://brodaleegitlabplugin.herokuapp.com/*", "https://gitlab.com/*"],
     "content_scripts": [
       {
@@ -11,6 +11,7 @@
           "./scripts/functions.js",
           "./scripts/console.js",
           "./scripts/vars.js",
+          "./scripts/GitLabMarkdownParser.js",
           "./lib/snackBar.js",
           "./lib/templateEngine.js",
           "./lib/vanillapicker.js",

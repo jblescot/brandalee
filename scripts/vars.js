@@ -15,5 +15,18 @@ let MESSAGES = {
     },
     errors: {
         bad_format_mr: 'Attention, le format du titre est incorrect. Voici un exemple : \n feature/ABCD-1234 nom_du_ticket'
+    },
+    snackbar: {
+        dynamicMessage: {
+            seeJiraTicket: function(link) {
+                return `Vous voulez voir le ticket ? <a href="${link}" style="color:white;">Par ici</a>`
+            },
+            resolveThread: function(number) {
+                return `Il vous reste ${number} thread(s) à résoudre !`
+            },
+            seeGitlabMergeRequest: function(link) {
+                return `Le ticket est peut être en merge request ? <a href="${link}" style="color:white;">Voir ici</a>`
+            }
+        }
     }
 }

@@ -54,6 +54,7 @@ const DomClasses = {
     UP_VOTES: "issuable-upvotes",
     DOWN_VOTES: "issuable-downvotes",
     MERGE_TITLE: "qa-issuable-form-title",
+    MERGE_REQUEST_TITLE: 'qa-title',
     MERGE_REQUEST: "merge-request",
     RESOLVED_THREAD: 'line-resolve-all-container',
     RESOLVED_TEXT: 'line-resolve-text'
@@ -130,7 +131,7 @@ function initScripts() {
                 Snackbar.show({
                     pos: 'top-center',
                     actionText: 'Merci !',
-                    text: `Il vous reste ${text} thread(s) à résoudre !`
+                    text: MESSAGES.snackbar.dynamicMessage.resolveThread(text)
                 });
             }
         }
@@ -165,6 +166,7 @@ loadConfiguration(navigator).then(() => {
         initScripts();
         afilWithJiraTicketAndColorDOM();
         showSnackBarWhenOnJiraTicket();
+        showSnackBarWhenOnGitlabMergeRequest();
         controlMergeTitle();
         controlApprovalBeforeMerge();
     }
@@ -690,6 +692,7 @@ function updateGitlabTab() {
                                     }
                                 })
                                 let ids = [];
+                                let bannedIds = [];
                                 (new Promise(resolve => {
                                     let state_count = 0;
                                     let max_state_count = 0;
@@ -756,10 +759,15 @@ function updateGitlabTab() {
                                                                     }
                                                                     return ""
                                                                 },
+                                                                projectName: project.name,
+                                                                groupName: USED_CONFIG.GROUP_NAME,
                                                                 canMerge: mr.author.id === data.gitlab.user.id && mr.downvotes === 0 && mr.upvotes >= USED_CONFIG.MIN_APPROVAL_NUMBER
                                                             })
                                                         ids.push(`${mr.id}`);
                                                         state_count++;
+                                                        if (mr.author.id === data.gitlab.user.id) {
+                                                            bannedIds.push(`${mr.id}`)
+                                                        }
                                                         if (state_count === max_state_count) {
                                                             document.getElementById('connected').innerHTML = Mustache.render(GITLAB_MERGE_REQUEST_TEMPLATE, {groups: elementsToDisplay})
                                                             resolve(true)
@@ -793,76 +801,111 @@ function updateGitlabTab() {
                                                 })
                                             })
                                         }
-                                        if (document.getElementById(`up_${id}`))
-                                            document.getElementById(`up_${id}`).addEventListener('click', function (e) {
+                                        if (document.getElementById(`diff_${id}`)) {
+                                            document.getElementById(`diff_${id}`).addEventListener('click', function(e) {
                                                 let element = e.target
                                                 if(element.tagName === "PATH" || e.target.tagName === "path")
                                                     element = e.target.parentElement
-                                                if (element.dataset.awardid === '') {
-                                                    addAwardEmoji(
-                                                        element.dataset.projectid,
-                                                        element.dataset.iid,
-                                                        'thumbsup',
-                                                        headers
-                                                    ).then(res => {
+
+                                                document.getElementById('showDiffContainer').innerHTML = ""
+                                                dontDisplayElement("connected")
+                                                displayElement(["showDiff", "showDiffLoading"])
+                                                executeRequest(`https://gitlab.com/api/v4/projects/${element.dataset.projectid}/merge_requests/${element.dataset.iid}/changes`, getOptions)
+                                                    .then(res => {
                                                         if (res) {
-                                                            element.style.fill = "gold"
-                                                            element.dataset.awardid = res.id
+                                                            let final_string_changes = ""
+                                                            res.changes.forEach((change) => {
+                                                                final_string_changes += change.diff;
+                                                                let extensionFile = change.new_path.split('.').pop()
+                                                                final_string_changes += GitLabMarkdownParser.parse(change.diff, extensionFile)
+                                                            })
+                                                            let reader = new commonmark.Parser();
+                                                            let writer = new commonmark.HtmlRenderer();
+                                                            let parsed = reader.parse(final_string_changes)
+                                                            let markdown = writer.render(parsed)
+                                                            dontDisplayElement("showDiffLoading")
+                                                            displayElement("showDiffContainer")
+                                                            document.getElementById('showDiffContainer').innerHTML = markdown
+                                                        }
+                                                    })
+                                            });
+                                        }
+                                        if (document.getElementById(`up_${id}`)) {
+                                            if (!bannedIds.includes(id)) {
+                                                document.getElementById(`up_${id}`).addEventListener('click', function (e) {
+                                                    let element = e.target
+                                                    if(element.tagName === "PATH" || e.target.tagName === "path")
+                                                        element = e.target.parentElement
+                                                    if (element.dataset.awardid === '') {
+                                                        addAwardEmoji(
+                                                            element.dataset.projectid,
+                                                            element.dataset.iid,
+                                                            'thumbsup',
+                                                            headers
+                                                        ).then(res => {
+                                                            if (res) {
+                                                                element.style.fill = "gold"
+                                                                element.dataset.awardid = res.id
+                                                                let value = parseInt(document.getElementById('th_up_' + element.id.replace('up_', '')).textContent)
+                                                                value ++;
+                                                                document.getElementById('th_up_' + element.id.replace('up_', '')).textContent = value
+                                                            }
+                                                        })
+                                                    } else {
+                                                        deleteAwardEmoji(
+                                                            element.dataset.projectid,
+                                                            element.dataset.iid,
+                                                            element.dataset.awardid,
+                                                            headers
+                                                        ).then(res => {
+                                                            element.style.fill = "black"
+                                                            element.dataset.awardid = ""
                                                             let value = parseInt(document.getElementById('th_up_' + element.id.replace('up_', '')).textContent)
-                                                            value ++;
+                                                            value --;
                                                             document.getElementById('th_up_' + element.id.replace('up_', '')).textContent = value
-                                                        }
-                                                    })
-                                                } else {
-                                                    deleteAwardEmoji(
-                                                        element.dataset.projectid,
-                                                        element.dataset.iid,
-                                                        element.dataset.awardid,
-                                                        headers
-                                                    ).then(res => {
-                                                        element.style.fill = "black"
-                                                        element.dataset.awardid = ""
-                                                        let value = parseInt(document.getElementById('th_up_' + element.id.replace('up_', '')).textContent)
-                                                        value --;
-                                                        document.getElementById('th_up_' + element.id.replace('up_', '')).textContent = value
-                                                    })
-                                                }
-                                            })
-                                        if (document.getElementById(`down_${id}`))
-                                            document.getElementById(`down_${id}`).addEventListener('click', function (e) {
-                                                let element = e.target
-                                                if(element.tagName === "PATH" || element.tagName === "path")
-                                                    element = e.target.parentElement
-                                                if (element.dataset.awardid === "") {
-                                                    addAwardEmoji(
-                                                        element.dataset.projectid,
-                                                        element.dataset.iid,
-                                                        'thumbsdown',
-                                                        headers
-                                                    ).then(res => {
-                                                        if (res) {
-                                                            element.style.fill = "gold"
-                                                            element.dataset.awardid = res.id
+                                                        })
+                                                    }
+                                                })
+                                            }
+                                        }
+                                        if (document.getElementById(`down_${id}`)) {
+                                            if (!bannedIds.includes(id)) {
+                                                document.getElementById(`down_${id}`).addEventListener('click', function (e) {
+                                                    let element = e.target
+                                                    if(element.tagName === "PATH" || element.tagName === "path")
+                                                        element = e.target.parentElement
+                                                    if (element.dataset.awardid === "") {
+                                                        addAwardEmoji(
+                                                            element.dataset.projectid,
+                                                            element.dataset.iid,
+                                                            'thumbsdown',
+                                                            headers
+                                                        ).then(res => {
+                                                            if (res) {
+                                                                element.style.fill = "gold"
+                                                                element.dataset.awardid = res.id
+                                                                let value = parseInt(document.getElementById('th_down_' + element.id.replace('down_', '')).textContent)
+                                                                value ++;
+                                                                document.getElementById('th_down_' + element.id.replace('down_', '')).textContent = value
+                                                            }
+                                                        })
+                                                    } else {
+                                                        deleteAwardEmoji(
+                                                            element.dataset.projectid,
+                                                            element.dataset.iid,
+                                                            element.dataset.awardid,
+                                                            headers
+                                                        ).then(res => {
+                                                            element.dataset.awardid = ""
+                                                            element.style.fill = "black"
                                                             let value = parseInt(document.getElementById('th_down_' + element.id.replace('down_', '')).textContent)
-                                                            value ++;
+                                                            value --;
                                                             document.getElementById('th_down_' + element.id.replace('down_', '')).textContent = value
-                                                        }
-                                                    })
-                                                } else {
-                                                    deleteAwardEmoji(
-                                                        element.dataset.projectid,
-                                                        element.dataset.iid,
-                                                        element.dataset.awardid,
-                                                        headers
-                                                    ).then(res => {
-                                                        element.dataset.awardid = ""
-                                                        element.style.fill = "black"
-                                                        let value = parseInt(document.getElementById('th_down_' + element.id.replace('down_', '')).textContent)
-                                                        value --;
-                                                        document.getElementById('th_down_' + element.id.replace('down_', '')).textContent = value
-                                                    })
-                                                }
-                                            })
+                                                        })
+                                                    }
+                                                })
+                                            }
+                                        }
                                         if (document.getElementById(`comment_${id}`)) {
                                             document.getElementById(`comment_${id}`).addEventListener('click', function(e) {
                                                 let element = e.target
@@ -1025,7 +1068,7 @@ function showSnackBarWhenOnJiraTicket() {
                 Snackbar.show({
                     pos: 'top-center',
                     actionText: 'Merci !',
-                    text: `Le ticket est peut être en merge request ? <a href="${link}" style="color:white;">Voir ici</a>`
+                    text: MESSAGES.snackbar.dynamicMessage.seeGitlabMergeRequest(link)
                 });
             }
         }
@@ -1039,12 +1082,54 @@ function showSnackBarWhenOnJiraTicket() {
             Snackbar.show({
                 pos: 'top-center',
                 actionText: 'Merci !',
-                text: `Le ticket est peut être en merge request ? <a href="${link}" style="color:white;">Voir ici</a>`
+                text: MESSAGES.snackbar.dynamicMessage.seeGitlabMergeRequest(link)
+            });
+        }
+    }
+    const url = window.location.href
+    const splittedUrl = url.split('/')
+    let lastRouteUrl = splittedUrl[splittedUrl.length - 1]
+    const regex = `${JIRA_URL}${lastRouteUrl}`
+    const matches = url.match(regex)
+    if (matches) {
+        let ticketRefMatch = url.match(Regexes.TICKET_REF)
+        if (ticketRefMatch && ticketRefMatch[0]) {
+            const link = `https://gitlab.com/groups/${USED_CONFIG.GROUP_NAME}/-/merge_requests?scope=all&utf8=%E2%9C%93&state=opened&search=${ticketRefMatch[0]}`;
+            Snackbar.show({
+                pos: 'top-center',
+                actionText: 'Merci !',
+                text: MESSAGES.snackbar.dynamicMessage.seeGitlabMergeRequest(link)
             });
         }
     }
 }
 
+/**
+ * Affiche une snackbar pour avoir un éventuel accès indirect vers unn ticket jira.
+ */
+function showSnackBarWhenOnGitlabMergeRequest() {
+    const regex = `https:\/\/gitlab\.com\/${USED_CONFIG.GROUP_NAME}\/[a-zA-Z-.\-]+\/\-\/merge_requests\/[0-9]+`
+    let match = window.location.href.match(regex)
+    if (match) {
+        let titleElement = document.getElementsByClassName(DomClasses.MERGE_REQUEST_TITLE)[0]
+        if (titleElement instanceof HTMLElement) {
+            let found = titleElement.textContent.match(Regexes.MR_TITLE)
+            if (found) {
+                let matches = titleElement.textContent.match(Regexes.TICKET_REF);
+                if (matches && matches[0]) {
+                    setTimeout(function () {
+                        const link = JIRA_URL + `${matches[0]}`
+                        Snackbar.show({
+                            pos: 'top-center',
+                            actionText: 'Merci !',
+                            text: MESSAGES.snackbar.dynamicMessage.seeJiraTicket(link)
+                        });
+                    }, 1000)
+                }
+            }
+        }
+    }
+}
 
 /**
  * Permet d'affilé un ticket JIRA avec le nom de la branche (si celle-ci à un format standard) afin de créer un
