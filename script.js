@@ -8,6 +8,7 @@ let JIRA_TICKET_TEMPLATE = ""
 let JIRA_SCRUMB_BOARD_CHOICE_TEMPLATE = ""
 let GITLAB_MERGE_REQUEST_TEMPLATE = ""
 let JIRA_JSE_TEMPLATE = ""
+let GITLAB_DIFF_TEMPLATE = ""
 
 /**
  * Charge le contenu d'un fichier et appel une callback en passant le textContent en paramètre.
@@ -31,9 +32,12 @@ function initTemplateVars() {
         loadFileContent('gitlab_merge_request.tpl', (text) => {
             GITLAB_MERGE_REQUEST_TEMPLATE = text
         })
-        loadFileContent('jira_jse.tpl', (text) => {
-            JIRA_JSE_TEMPLATE = text
+        loadFileContent('gitlab_diff.tpl', (text) => {
+            GITLAB_DIFF_TEMPLATE = text
         })
+        /*loadFileContent('jira_jse.tpl', (text) => {
+            JIRA_JSE_TEMPLATE = text
+        })*/
         loadFileContent('scrum_board_choice.tpl', (text) => {
             JIRA_SCRUMB_BOARD_CHOICE_TEMPLATE = text
         })
@@ -818,7 +822,7 @@ function updateGitlabTab() {
                                                                 console.log(change)
                                                                 let extensionFile = change.new_path.split('.').pop()
                                                                 let fileName = change.new_path.split('/').pop()
-                                                                final_string_changes += GitLabMarkdownParser.parse(change.diff, extensionFile, fileName)
+                                                                final_string_changes += GitLabMarkdownParser.parse(change.diff, extensionFile, fileName, GITLAB_DIFF_TEMPLATE)
                                                             })
                                                             hideElement("showDiffLoading")
                                                             showElement("showDiffContainer")
