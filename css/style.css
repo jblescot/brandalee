@@ -6,6 +6,44 @@ video {
     height: 350px;
 }
 
+.code {
+    background-color: #ffffff;
+    border-radius: 10px;
+    color: black;
+}
+
+.hideOverflow-x {
+    overflow-x: hidden;
+}
+
+.file_title {
+    border-radius: 10px;
+    font-size: 16px;
+    background-color: #FF671F;
+    text-align: center;
+}
+
+pre {
+    font-size: 14px;
+}
+
+.bold_trait {
+    height: 1px;
+    background-color: black;
+}
+
+pre {
+    color: black;
+}
+
+.red_line_diff {
+    background-color: #fd998f;
+}
+
+.green_line_diff {
+    background-color: #a6fdb2;
+}
+
 body {
     width: 550px;
     height: 550px;
@@ -55,7 +93,7 @@ body {
     display: none;
 }
 
-#showCommentsCross {
+#showCommentsCross, #showDiffCross {
     color: white;
     float: left;
     cursor: pointer;
@@ -139,7 +177,6 @@ svg {
     height: 34px;
 }
 
-/* Hide default HTML checkbox */
 .switch input {
     opacity: 0;
     width: 0;

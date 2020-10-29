@@ -312,16 +312,16 @@ function initPopUp() {
         getFirstChildren(document.getElementById('tab_gitlab')).classList.remove('active');
         getFirstChildren(document.getElementById('tab_jira')).classList.remove('active');
         getFirstChildren(document.getElementById('tab_jse')).classList.remove('active');
-        dontDisplayElement(['container_gitlab', 'container_jira', 'container_jse'])
-        displayElement('container_configuration')
+        hideElement(['container_gitlab', 'container_jira', 'container_jse'])
+        showElement('container_configuration')
     })
     document.getElementById('tab_gitlab').addEventListener('click', function (e) {
         e.target.classList.add('active')
         getFirstChildren(document.getElementById('tab_configuration')).classList.remove('active');
         getFirstChildren(document.getElementById('tab_jira')).classList.remove('active');
         getFirstChildren(document.getElementById('tab_jse')).classList.remove('active');
-        dontDisplayElement(['container_configuration', 'container_jira', 'container_jse'])
-        displayElement('container_gitlab')
+        hideElement(['container_configuration', 'container_jira', 'container_jse'])
+        showElement('container_gitlab')
     })
 
     document.getElementById('tab_jira').addEventListener('click', function(e) {
@@ -329,8 +329,8 @@ function initPopUp() {
         getFirstChildren(document.getElementById('tab_configuration')).classList.remove('active');
         getFirstChildren(document.getElementById('tab_gitlab')).classList.remove('active');
         getFirstChildren(document.getElementById('tab_jse')).classList.remove('active');
-        dontDisplayElement(['container_configuration', 'container_gitlab', 'container_jse'])
-        displayElement('container_jira')
+        hideElement(['container_configuration', 'container_gitlab', 'container_jse'])
+        showElement('container_jira')
     })
 
     document.getElementById('tab_jse').addEventListener('click', function(e) {
@@ -340,8 +340,8 @@ function initPopUp() {
                 getFirstChildren(document.getElementById('tab_configuration')).classList.remove('active');
                 getFirstChildren(document.getElementById('tab_gitlab')).classList.remove('active');
                 getFirstChildren(document.getElementById('tab_jira')).classList.remove('active');
-                dontDisplayElement(['container_configuration', 'container_gitlab', 'container_jira'])
-                displayElement('container_jse')
+                hideElement(['container_configuration', 'container_gitlab', 'container_jira'])
+                showElement('container_jse')
             } else {
                 navigator.sendNotification(MESSAGES.notifications.jiraMustConnect.title, MESSAGES.notifications.jiraMustConnect.message)
             }
@@ -460,8 +460,8 @@ function initPopUp() {
 function updateJiraTab() {
     navigator.getFromStore('jira', function(data) {
         if (data.jira && data.jira.user && data.jira.scrumTeam) {
-            dontDisplayElement(['jira_not_connected_scrum_board_choices', 'jira_not_connected']);
-            displayElement('jira_loading');
+            hideElement(['jira_not_connected_scrum_board_choices', 'jira_not_connected']);
+            showElement('jira_loading');
             let selectedScrumTeam = data.jira.scrumTeam
             let user = data.jira.user
             let headers = new Headers()
@@ -492,7 +492,7 @@ function updateJiraTab() {
                         })
                         .then(sprintData => {
                             if (sprintData != null) {
-                                dontDisplayElement('jira_loading')
+                                hideElement('jira_loading')
                                 let issues = sprintData.issues
                                 let ownTicket = issues.filter(i => i.fields?.assignee?.accountId === user.accountId)
                                 document.getElementById('jira_connected').innerHTML = ""
@@ -552,8 +552,8 @@ function updateJiraTab() {
                 }
             })
         } else {
-            dontDisplayElement(['jira_loading', 'jira_not_connected_scrum_board_choices', 'jira_connected']);
-            displayElement('jira_not_connected');
+            hideElement(['jira_loading', 'jira_not_connected_scrum_board_choices', 'jira_connected']);
+            showElement('jira_not_connected');
         }
     })
     document.getElementById('jira_create_token').addEventListener('click', function() {
@@ -594,8 +594,8 @@ function updateJiraTab() {
                     if (board != null) {
                         document.getElementById('jira_not_connected_scrum_board_choices').innerHTML = ""
                         let boards = board.values.filter(b => b.type === "scrum")
-                        displayElement('jira_not_connected_scrum_board_choices')
-                        dontDisplayElement('jira_not_connected')
+                        showElement('jira_not_connected_scrum_board_choices')
+                        hideElement('jira_not_connected')
                         document.getElementById('jira_not_connected_scrum_board_choices').innerHTML += `<h3 class="text-center"> Sélectionnez votre équipe </h3> <br/>`
         
                         boards.forEach(b => {
@@ -605,8 +605,8 @@ function updateJiraTab() {
                             if (document.getElementById('choice_'+b.id)) {
                                 document.getElementById('choice_'+b.id).addEventListener('click', function(e) {
                                     document.getElementById('jira_not_connected_scrum_board_choices').innerHTML = ""
-                                    dontDisplayElement('jira_not_connected_scrum_board_choices');
-                                    displayElement('jira_loading');
+                                    hideElement('jira_not_connected_scrum_board_choices');
+                                    showElement('jira_loading');
                                     let selectedScrumTeam = boards.find(i => i.id === parseInt(e.target.id.replace('choice_', '')))
                                     let identity = {
                                         user: userData[0],
@@ -615,7 +615,7 @@ function updateJiraTab() {
                                     identity.user.token = encodedCredentials
                                     navigator.store({jira: identity})
                                     updateJiraTab()
-                                    displayElement('jira_connected')
+                                    showElement('jira_connected')
                                 })
                             }
                         })
@@ -660,8 +660,8 @@ function updateJiraStatusIssue(relatedDOMElement, headers) {
 function updateGitlabTab() {
     navigator.getFromStore('gitlab', function (data) {
         if (data.gitlab) {
-            displayElement(['gitlab_loading', 'connected']);
-            dontDisplayElement(['not_connected', 'loading'])
+            showElement(['gitlab_loading', 'connected']);
+            hideElement(['not_connected', 'loading'])
 
             let headers = new Headers()
             headers.append('PRIVATE-TOKEN', data.gitlab.user.token)
@@ -777,7 +777,7 @@ function updateGitlabTab() {
                                         }
                                     });
                                 })).then(resolve => {
-                                    dontDisplayElement('gitlab_loading')
+                                    hideElement('gitlab_loading')
                                     ids.forEach((id) => {
                                         if (document.getElementById(id))
                                             document.getElementById(id).addEventListener('click', function (e) {
@@ -808,24 +808,21 @@ function updateGitlabTab() {
                                                     element = e.target.parentElement
 
                                                 document.getElementById('showDiffContainer').innerHTML = ""
-                                                dontDisplayElement("connected")
-                                                displayElement(["showDiff", "showDiffLoading"])
+                                                hideElement("connected")
+                                                showElement(["showDiff", "showDiffLoading"])
                                                 executeRequest(`https://gitlab.com/api/v4/projects/${element.dataset.projectid}/merge_requests/${element.dataset.iid}/changes`, getOptions)
                                                     .then(res => {
                                                         if (res) {
                                                             let final_string_changes = ""
                                                             res.changes.forEach((change) => {
-                                                                final_string_changes += change.diff;
+                                                                console.log(change)
                                                                 let extensionFile = change.new_path.split('.').pop()
-                                                                final_string_changes += GitLabMarkdownParser.parse(change.diff, extensionFile)
+                                                                let fileName = change.new_path.split('/').pop()
+                                                                final_string_changes += GitLabMarkdownParser.parse(change.diff, extensionFile, fileName)
                                                             })
-                                                            let reader = new commonmark.Parser();
-                                                            let writer = new commonmark.HtmlRenderer();
-                                                            let parsed = reader.parse(final_string_changes)
-                                                            let markdown = writer.render(parsed)
-                                                            dontDisplayElement("showDiffLoading")
-                                                            displayElement("showDiffContainer")
-                                                            document.getElementById('showDiffContainer').innerHTML = markdown
+                                                            hideElement("showDiffLoading")
+                                                            showElement("showDiffContainer")
+                                                            document.getElementById('showDiffContainer').innerHTML = final_string_changes
                                                         }
                                                     })
                                             });
@@ -914,15 +911,15 @@ function updateGitlabTab() {
 
                                                 document.getElementById('showCommentsContainer').innerHTML = ""
 
-                                                displayElement(['showComments', 'showCommentsLoading']);
-                                                dontDisplayElement('connected');
+                                                showElement(['showComments', 'showCommentsLoading']);
+                                                hideElement('connected');
 
                                                 executeRequest(`https://gitlab.com/api/v4/projects/${element.dataset.projectid}/merge_requests/${element.dataset.iid}/discussions`, getOptions)
                                                     .then(comments => {
                                                         if (comments.length === 0) {
                                                             document.getElementById('showCommentsContainer').innerHTML = "Pas de commentaires sur la merge request."
                                                         }
-                                                        dontDisplayElement('showCommentsLoading')
+                                                        hideElement('showCommentsLoading')
                                                         let ids_resolve = []
                                                         let reader = new commonmark.Parser();
                                                         let writer = new commonmark.HtmlRenderer();
@@ -975,14 +972,20 @@ function updateGitlabTab() {
                 })
                 if (document.getElementById('showCommentsCross')) {
                     document.getElementById('showCommentsCross').addEventListener('click', function() {
-                        dontDisplayElement('showComments')
-                        displayElement('connected')
+                        hideElement('showComments')
+                        showElement('connected')
+                    })
+                }
+                if (document.getElementById('showDiffCross')) {
+                    document.getElementById('showDiffCross').addEventListener('click', function() {
+                        hideElement('showDiff')
+                        showElement('connected')
                     })
                 }
             })
         } else {
-            displayElement('not_connected');
-            dontDisplayElement(['loading', 'connected']);
+            showElement('not_connected');
+            hideElement(['loading', 'connected']);
         }
     })
 }

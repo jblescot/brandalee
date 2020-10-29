@@ -37,7 +37,7 @@ function executeRequest(url, options = {}) {
  *
  * @param {string|Array} param Id de(s) l'élément(s);
  */
-function displayElement(param) {
+function showElement(param) {
     if (param instanceof Array) {
         param.forEach(p => {
             document.getElementById(p).style.display = 'block';
@@ -52,7 +52,7 @@ function displayElement(param) {
  *
  * @param {string|Array} param Id de(s) l'élément(s);
  */
-function dontDisplayElement(param) {
+function hideElement(param) {
     if (param instanceof Array) {
         param.forEach(p => {
             document.getElementById(p).style.display = 'none';

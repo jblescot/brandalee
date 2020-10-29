@@ -67,7 +67,8 @@ Sélectionnez le dossier contenant tout le code source.
 - Gitlab Tab : 
     - Envoyer un commentaire.
     - Appliquer des suggestions.
-    - Voir la diff.
+    - Voir la diff (OK).
+    - Améliorer l'UI sur la visualisation des diffs.
 - Jira Tab :
     - S'assigner un ticket dans le sprint.
 - Application
