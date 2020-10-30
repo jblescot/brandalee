@@ -24,6 +24,15 @@ class GitLab {
     }
 
     /**
+     * Retourne l'utilisateur.
+     *
+     * @returns {PublicKeyCredentialUserEntity}
+     */
+    getUser() {
+        return this.data?.user
+    }
+
+    /**
      * Vérifie si le private token fonctionne et retourne les informations.
      *
      * @returns {Promise<Response>}

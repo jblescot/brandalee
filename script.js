@@ -11,7 +11,8 @@ let JIRA_JSE_TEMPLATE = ""
 let GITLAB_DIFF_TEMPLATE = ""
 
 const gitlab = new GitLab(navigator)
-const tab = new Tab()
+const tab = new Tab(navigator)
+const optionality = new Optionality(navigator)
 
 /**
  * Charge le contenu d'un fichier et appel une callback en passant le textContent en paramètre.
@@ -21,7 +22,9 @@ const tab = new Tab()
  */
 function loadFileContent(fileName, callback) {
     let url = navigator.getUrlOf(`tpl/${fileName}`)
-    fetch(url).then(res => res.blob()).then(blob => blob.text()).then(text => {callback(text)})
+    fetch(url).then(res => res.blob()).then(blob => blob.text()).then(text => {
+        callback(text)
+    })
 }
 
 /**
@@ -181,7 +184,6 @@ loadConfiguration(navigator).then(() => {
     if (body.dataset.type && body.dataset.type === 'plugin') {
         checkForUpdate();
         initPopUp();
-        initDisconnect();
     }
 
     console.printStart();
@@ -189,77 +191,8 @@ loadConfiguration(navigator).then(() => {
 });
 
 /**
- * Initialise la partie déconnexion.
- */
-function initDisconnect() {
-    document.getElementById('disconnect').addEventListener('click', () => {
-        navigator.store({jira: null})
-        navigator.store({gitlab: null})
-        gitlab.updateCredential()
-        updateGitlabTab();
-        updateJiraTab()
-    })
-}
-
-/**
- * Initialise la tab configuration.
- */
-function initConfigurationTab() {
-    let cmp = document.querySelector('#cmp')
-    let picker = new Picker(cmp)
-    picker.onChange = function(color) {
-        cmp.style.backgroundColor = color.rgbaString;
-        cmp.value = color.rgbaString
-    }
-    picker.setOptions({
-        popup: 'right',
-        color: cmp.value
-    })
-
-    let cmnv = document.querySelector('#cmnv')
-    let cmnvPicker = new Picker(cmnv)
-    cmnvPicker.onChange = function(color) {
-        cmnv.style.backgroundColor = color.rgbaString
-        cmnv.value = color.rgbaString
-    }
-    cmnvPicker.setOptions({
-        popup: 'left',
-        color: cmnv.value
-    })
-
-    navigator.getFromStore('notifications', (d) => {
-        if (d.notifications) {
-            NOTIFICATIONS = d.notifications
-        } else {
-            navigator.store({notifications: {mergePossible: false}})
-            NOTIFICATIONS = {mergePossible: false}
-        }
-        if (NOTIFICATIONS.mergePossible === true) {
-            document.getElementById('can_merge_input').click()
-            document.getElementById('can_merge_input').setAttribute("activated", "true")
-        } else {
-            document.getElementById('can_merge_input').setAttribute("activated", "false")
-        }
-    })
-
-    if (document.getElementById("can_merge_input")) {
-        document.getElementById('can_merge_input').addEventListener('change', (e) => {
-            let activated = e.target.getAttribute("activated")
-            if (activated === "true") {
-                e.target.setAttribute("activated", "false")
-                NOTIFICATIONS.mergePossible = false
-            } else if (activated === "false") {
-                e.target.setAttribute("activated", "true")
-                NOTIFICATIONS.mergePossible = true
-            }
-            navigator.store({notifications: NOTIFICATIONS})
-        })
-    }
-}
-
-/**
  * Applique un filtre de recherche sur les tickets jira.
- * 
+ *
  * @param {Array} issues
  */
 function applyFilterForJSE(issues) {
@@ -267,7 +200,7 @@ function applyFilterForJSE(issues) {
     let issuesFilteredByKey = []
     let issuesFilteredByTitle = []
     let issuedFilteredByDescription = []
-    searched_word.forEach( word => {
+    searched_word.forEach(word => {
         issuesFilteredByKey = [...issuesFilteredByKey, ...issues.filter(i => i.key.includes(word))]
         issuesFilteredByTitle = [...issuesFilteredByTitle, ...issues.filter(i => i.fields.summary.includes(word))]
         issuedFilteredByDescription = [...issuedFilteredByDescription, ...issues.filter(i => {
@@ -283,7 +216,12 @@ function applyFilterForJSE(issues) {
     document.getElementById('jse_search_btn').removeAttribute('disabled')
     document.getElementById('jse_container_search').innerHTML = ""
     finalData.forEach(i => {
-        document.getElementById('jse_container_search').innerHTML += Mustache.render(JIRA_JSE_TEMPLATE, {key: i.key, summary: i.fields.summary, description: i.fields.description, id: i.id})  
+        document.getElementById('jse_container_search').innerHTML += Mustache.render(JIRA_JSE_TEMPLATE, {
+            key: i.key,
+            summary: i.fields.summary,
+            description: i.fields.description,
+            id: i.id
+        })
     })
     finalData.forEach(i => {
         document.getElementById(`take_jse_${i.id}`).addEventListener('click', (e) => {
@@ -294,8 +232,8 @@ function applyFilterForJSE(issues) {
 
 /**
  * Permet de s'assigner un ticket jira.
- * 
- * @param {string} ticketId 
+ *
+ * @param {string} ticketId
  */
 function assignJiraTicket(ticketId) {
     console.log(ticketId)
@@ -311,43 +249,16 @@ function assignJiraTicket(ticketId) {
  */
 function initPopUp() {
 
-    initConfigurationTab();
+    tab.configureTabs()
+    optionality.configureOptionalities()
+
     updateGitlabTab();
     updateJiraTab();
-
-    tab.configureTabs()
-
-    // Récupération des informations personnel.
-    document.getElementById('own_data').addEventListener('click', () => {
-        navigator.getFromStore('gitlab', (dataGit) => {
-            navigator.getFromStore('jira', (dataJira) => {
-                navigator.getFromStore('configuration', (dataConfig) => {
-                    let identity = {
-                        gitlab: dataGit,
-                        configuration: dataConfig,
-                        jira: dataJira
-                    }
-                    let doc = URL.createObjectURL( new Blob([JSON.stringify(identity)], {type: 'application/json'}))
-                    navigator.download(doc)
-                })
-            })
-        })
-    })
-
-    // Rechargement des données gitlab & jira.
-    document.getElementById('reload').addEventListener('click', (e) => {
-        document.getElementById('turn').classList.add('rotate')
-        updateGitlabTab()
-        updateJiraTab()
-        setTimeout(() => {
-            document.getElementById('turn').classList.remove('rotate')
-        }, 2000)
-    })
 
     let hasAlreadyDidRequest = false
     let jiraIssues = []
     if (document.getElementsByClassName('field_jse_name'))
-        document.getElementById('jse_search_btn').addEventListener('click', function(e) {
+        document.getElementById('jse_search_btn').addEventListener('click', function (e) {
             let searched_text = getValueOfDomId('field_jse_name')
             document.getElementById('jse_search_btn').disabled = "disabled"
             document.getElementById('jse_search_btn').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>'
@@ -375,36 +286,36 @@ function initPopUp() {
             } else {
                 applyFilterForJSE(jiraIssues)
             }
-            
+
         })
 
     document.getElementById('validate_gitlab_token').addEventListener('click', function (e) {
         e.target.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Chargement...'
         gitlab.getPAT()
             .then(res => {
-            if (res) {
-                let last_token = res[res.length - 1]
-                gitlab.getUserByTokenId(last_token.user_id)
-                    .then(user => {
-                        if (user) {
-                            gitlab.getGroupsByUser()
-                                .then(groups => {
-                                    if (groups) {
-                                        user.token = getValueOfDomId('token_gitlab')
-                                        user.groups = groups
-                                        last_token.user = user
-                                        navigator.store({gitlab: last_token})
-                                        gitlab.updateCredential()
-                                        updateGitlabTab();
-                                        e.target.innerHTML = 'Valider'
-                                    }
-                                })
-                        }
-                    })
-            } else {
-                e.target.innerHTML = 'Valider'
-            }
-        })
+                if (res) {
+                    let last_token = res[res.length - 1]
+                    gitlab.getUserByTokenId(last_token.user_id)
+                        .then(user => {
+                            if (user) {
+                                gitlab.getGroupsByUser()
+                                    .then(groups => {
+                                        if (groups) {
+                                            user.token = getValueOfDomId('token_gitlab')
+                                            user.groups = groups
+                                            last_token.user = user
+                                            navigator.store({gitlab: last_token})
+                                            gitlab.updateCredential()
+                                            updateGitlabTab();
+                                            e.target.innerHTML = 'Valider'
+                                        }
+                                    })
+                            }
+                        })
+                } else {
+                    e.target.innerHTML = 'Valider'
+                }
+            })
     })
 }
 
@@ -412,7 +323,7 @@ function initPopUp() {
  * Met à jour la tab Jira.
  */
 function updateJiraTab() {
-    navigator.getFromStore('jira', function(data) {
+    navigator.getFromStore('jira', function (data) {
         if (data.jira && data.jira.user && data.jira.scrumTeam) {
             hideElement(['jira_not_connected_scrum_board_choices', 'jira_not_connected']);
             showElement('jira_loading');
@@ -420,100 +331,104 @@ function updateJiraTab() {
             let user = data.jira.user
             let headers = new Headers()
             headers.append('Authorization', `Basic ${user.token}`)
-            fetch(JIRA_API_URL + `/agile/1.0/board/${selectedScrumTeam.id}/sprint?state=active`,  {
+            fetch(JIRA_API_URL + `/agile/1.0/board/${selectedScrumTeam.id}/sprint?state=active`, {
                 method: 'GET',
                 headers: headers
             })
-            .then(res => {
-                if (res.status !== 200) {
-                    return null
-                }
-                return res.json()
-            })
-            .then(sprints => {
-                if (sprints != null) {
-                    let currentSprint = sprints.values[0]
-                    if (currentSprint) {
-                        fetch(JIRA_API_URL + `agile/1.0/board/${selectedScrumTeam.id}/sprint/${currentSprint.id}/issue`, {
-                            method: 'GET',
-                            headers: headers
-                        })
-                        .then(res => {
-                            if (res.status !== 200) {
-                                return null;
-                            }
-                            return res.json()
-                        })
-                        .then(sprintData => {
-                            if (sprintData != null) {
-                                hideElement('jira_loading')
-                                let issues = sprintData.issues
-                                let ownTicket = issues.filter(i => i.fields?.assignee?.accountId === user.accountId)
-                                document.getElementById('jira_connected').innerHTML = ""
-                                if (ownTicket.length === 0) {
-                                    document.getElementById('jira_connected').innerHTML += "Vous n'avez pas de ticket assigné."
-                                }
-                                let selector_ids = []
-                                document.getElementById('jira_connected').innerHTML += "<h3 class='text-center'>Mes ticket(s) du sprint actuel</h3>"
-                                ownTicket.forEach(i => {
-                                    selector_ids.push(`jira_selector_issue_status_${i.key}`)
-                                    document.getElementById('jira_connected').innerHTML += Mustache.render(JIRA_TICKET_TEMPLATE, {key: i.key, summary: i.fields.summary, description: i.fields.description})
-                                })
-                                selector_ids.forEach(element => {
-                                    let key = element.replace('jira_selector_issue_status_', '')
-                                    fetch(JIRA_API_URL + `api/2/issue/${key}/transitions?sortByOpsBarAndStatus=true`, {
-                                        headers: headers,
-                                        method: 'GET'
-                                    }).then(res => {
-                                        if (res.status === 200) {
-                                            return res.json()
-                                        }
-                                        return null
-                                    })
-                                    .then(status => {
-                                        if (status) {
-                                            let real_status = status.transitions.filter(i => i.isAvailable === true)
-                                            real_status.forEach(s => {
-                                                document.getElementById(element).innerHTML += `<option value="${s.id}">${s.name}</option>`  
-                                            })
-                                            document.getElementById(element).addEventListener('change', (e) => {
-                                                let content = {
-                                                    transition: {
-                                                        id: `${e.target.value}` 
-                                                    }
-                                                }
-                                                let newHeaders = headers
-                                                newHeaders.append('Content-Type', 'application/json')
-                                                fetch(JIRA_API_URL + `api/2/issue/${key}/transitions`, {
-                                                    headers: newHeaders,
-                                                    method: 'POST',
-                                                    body: JSON.stringify(content)
-                                                }).then(res => {
-                                                    return res.status === 200 || res.status === 204;
-                                                })
-                                                .then(status => {
-                                                    if (status === true) {
-                                                        updateJiraStatusIssue(element, headers)
-                                                    }
-                                                })
-                                            })
-                                        }
-                                    })
-                                });
-                            }
-                        })
+                .then(res => {
+                    if (res.status !== 200) {
+                        return null
                     }
-                }
-            })
+                    return res.json()
+                })
+                .then(sprints => {
+                    if (sprints != null) {
+                        let currentSprint = sprints.values[0]
+                        if (currentSprint) {
+                            fetch(JIRA_API_URL + `agile/1.0/board/${selectedScrumTeam.id}/sprint/${currentSprint.id}/issue`, {
+                                method: 'GET',
+                                headers: headers
+                            })
+                                .then(res => {
+                                    if (res.status !== 200) {
+                                        return null;
+                                    }
+                                    return res.json()
+                                })
+                                .then(sprintData => {
+                                    if (sprintData != null) {
+                                        hideElement('jira_loading')
+                                        let issues = sprintData.issues
+                                        let ownTicket = issues.filter(i => i.fields?.assignee?.accountId === user.accountId)
+                                        document.getElementById('jira_connected').innerHTML = ""
+                                        if (ownTicket.length === 0) {
+                                            document.getElementById('jira_connected').innerHTML += "Vous n'avez pas de ticket assigné."
+                                        }
+                                        let selector_ids = []
+                                        document.getElementById('jira_connected').innerHTML += "<h3 class='text-center'>Mes ticket(s) du sprint actuel</h3>"
+                                        ownTicket.forEach(i => {
+                                            selector_ids.push(`jira_selector_issue_status_${i.key}`)
+                                            document.getElementById('jira_connected').innerHTML += Mustache.render(JIRA_TICKET_TEMPLATE, {
+                                                key: i.key,
+                                                summary: i.fields.summary,
+                                                description: i.fields.description
+                                            })
+                                        })
+                                        selector_ids.forEach(element => {
+                                            let key = element.replace('jira_selector_issue_status_', '')
+                                            fetch(JIRA_API_URL + `api/2/issue/${key}/transitions?sortByOpsBarAndStatus=true`, {
+                                                headers: headers,
+                                                method: 'GET'
+                                            }).then(res => {
+                                                if (res.status === 200) {
+                                                    return res.json()
+                                                }
+                                                return null
+                                            })
+                                                .then(status => {
+                                                    if (status) {
+                                                        let real_status = status.transitions.filter(i => i.isAvailable === true)
+                                                        real_status.forEach(s => {
+                                                            document.getElementById(element).innerHTML += `<option value="${s.id}">${s.name}</option>`
+                                                        })
+                                                        document.getElementById(element).addEventListener('change', (e) => {
+                                                            let content = {
+                                                                transition: {
+                                                                    id: `${e.target.value}`
+                                                                }
+                                                            }
+                                                            let newHeaders = headers
+                                                            newHeaders.append('Content-Type', 'application/json')
+                                                            fetch(JIRA_API_URL + `api/2/issue/${key}/transitions`, {
+                                                                headers: newHeaders,
+                                                                method: 'POST',
+                                                                body: JSON.stringify(content)
+                                                            }).then(res => {
+                                                                return res.status === 200 || res.status === 204;
+                                                            })
+                                                                .then(status => {
+                                                                    if (status === true) {
+                                                                        updateJiraStatusIssue(element, headers)
+                                                                    }
+                                                                })
+                                                        })
+                                                    }
+                                                })
+                                        });
+                                    }
+                                })
+                        }
+                    }
+                })
         } else {
             hideElement(['jira_loading', 'jira_not_connected_scrum_board_choices', 'jira_connected']);
             showElement('jira_not_connected');
         }
     })
-    document.getElementById('jira_create_token').addEventListener('click', function() {
+    document.getElementById('jira_create_token').addEventListener('click', function () {
         navigator.openTab('https://id.atlassian.com/manage-profile/security/api-tokens');
     })
-    document.getElementById('jira_connexion').addEventListener('click', function(e) {
+    document.getElementById('jira_connexion').addEventListener('click', function (e) {
         e.target.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Chargement...'
         let token = getValueOfDomId('jira_token_auth')
         let email = getValueOfDomId('jira_email_auth')
@@ -525,66 +440,69 @@ function updateJiraTab() {
             method: 'GET',
             headers: headers
         })
-        .then(res => {
-            if (res.status !== 200) {
-                return null;
-            }
-            return res.json()
-        })
-        .then(userData => {
-            if (userData != null && userData[0]) {
-                fetch(JIRA_API_URL + "agile/1.0/board?maxResults=200", {
-                    method: 'GET',
-                    headers: headers
-                })
-                .then(res => {
-                    e.target.innerHTML = "Connexion"
-                    if (res.status !== 200) {
-                        return null
-                    }
-                    return res.json()
-                })
-                .then(board => {
-                    if (board != null) {
-                        document.getElementById('jira_not_connected_scrum_board_choices').innerHTML = ""
-                        let boards = board.values.filter(b => b.type === "scrum")
-                        showElement('jira_not_connected_scrum_board_choices')
-                        hideElement('jira_not_connected')
-                        document.getElementById('jira_not_connected_scrum_board_choices').innerHTML += `<h3 class="text-center"> Sélectionnez votre équipe </h3> <br/>`
-        
-                        boards.forEach(b => {
-                            document.getElementById('jira_not_connected_scrum_board_choices').innerHTML += Mustache.render(JIRA_SCRUMB_BOARD_CHOICE_TEMPLATE, {id: b.id, name: b.name})
+            .then(res => {
+                if (res.status !== 200) {
+                    return null;
+                }
+                return res.json()
+            })
+            .then(userData => {
+                if (userData != null && userData[0]) {
+                    fetch(JIRA_API_URL + "agile/1.0/board?maxResults=200", {
+                        method: 'GET',
+                        headers: headers
+                    })
+                        .then(res => {
+                            e.target.innerHTML = "Connexion"
+                            if (res.status !== 200) {
+                                return null
+                            }
+                            return res.json()
                         })
-                        boards.forEach(b => {
-                            if (document.getElementById('choice_'+b.id)) {
-                                document.getElementById('choice_'+b.id).addEventListener('click', function(e) {
-                                    document.getElementById('jira_not_connected_scrum_board_choices').innerHTML = ""
-                                    hideElement('jira_not_connected_scrum_board_choices');
-                                    showElement('jira_loading');
-                                    let selectedScrumTeam = boards.find(i => i.id === parseInt(e.target.id.replace('choice_', '')))
-                                    let identity = {
-                                        user: userData[0],
-                                        scrumTeam: selectedScrumTeam
+                        .then(board => {
+                            if (board != null) {
+                                document.getElementById('jira_not_connected_scrum_board_choices').innerHTML = ""
+                                let boards = board.values.filter(b => b.type === "scrum")
+                                showElement('jira_not_connected_scrum_board_choices')
+                                hideElement('jira_not_connected')
+                                document.getElementById('jira_not_connected_scrum_board_choices').innerHTML += `<h3 class="text-center"> Sélectionnez votre équipe </h3> <br/>`
+
+                                boards.forEach(b => {
+                                    document.getElementById('jira_not_connected_scrum_board_choices').innerHTML += Mustache.render(JIRA_SCRUMB_BOARD_CHOICE_TEMPLATE, {
+                                        id: b.id,
+                                        name: b.name
+                                    })
+                                })
+                                boards.forEach(b => {
+                                    if (document.getElementById('choice_' + b.id)) {
+                                        document.getElementById('choice_' + b.id).addEventListener('click', function (e) {
+                                            document.getElementById('jira_not_connected_scrum_board_choices').innerHTML = ""
+                                            hideElement('jira_not_connected_scrum_board_choices');
+                                            showElement('jira_loading');
+                                            let selectedScrumTeam = boards.find(i => i.id === parseInt(e.target.id.replace('choice_', '')))
+                                            let identity = {
+                                                user: userData[0],
+                                                scrumTeam: selectedScrumTeam
+                                            }
+                                            identity.user.token = encodedCredentials
+                                            navigator.store({jira: identity})
+                                            updateJiraTab()
+                                            showElement('jira_connected')
+                                        })
                                     }
-                                    identity.user.token = encodedCredentials
-                                    navigator.store({jira: identity})
-                                    updateJiraTab()
-                                    showElement('jira_connected')
                                 })
                             }
                         })
-                    }
-                })
-            }
-        })
+                }
+            })
     })
 }
 
 /**
  * Met à jour les status sélectionnable d'un ticket.
- * 
- * @param {string} relatedDOMElement 
- * @param {Headers} headers 
+ *
+ * @param {string} relatedDOMElement
+ * @param {Headers} headers
  */
 function updateJiraStatusIssue(relatedDOMElement, headers) {
     let key = relatedDOMElement.replace('jira_selector_issue_status_', '')
@@ -598,328 +516,326 @@ function updateJiraStatusIssue(relatedDOMElement, headers) {
         }
         return null
     })
-    .then(status => {
-        if (status) {
-            let real_status = status.transitions.filter(i => i.isAvailable === true)
-            real_status.forEach(s => {
-                document.getElementById(relatedDOMElement).innerHTML += `<option value="${s.id}">${s.name}</option>`  
-            })
-        }
-    })
+        .then(status => {
+            if (status) {
+                let real_status = status.transitions.filter(i => i.isAvailable === true)
+                real_status.forEach(s => {
+                    document.getElementById(relatedDOMElement).innerHTML += `<option value="${s.id}">${s.name}</option>`
+                })
+            }
+        })
 }
 
 /**
  * Met à jour la tab gitlab.
  */
 function updateGitlabTab() {
-    navigator.getFromStore('gitlab', function (data) {
-        if (data.gitlab) {
-            showElement(['gitlab_loading', 'connected']);
-            hideElement(['not_connected', 'loading'])
+    if (!gitlab.isConnected()) {
+        showElement('not_connected');
+        hideElement(['loading', 'connected']);
+        return
+    }
+    showElement(['gitlab_loading', 'connected']);
+    hideElement(['not_connected', 'loading'])
 
-            let elementsToDisplay = [];
-            data.gitlab.user.groups.forEach( group => {
-                elementsToDisplay.push({
-                    id: group.id,
-                    name: group.name,
-                    projects: []
-                })
-                gitlab.getProjectsByGroup(group.id)
-                .then(res => {
-                    if (res) {
-                        let projects = [];
-                        res.forEach((project) => {
-                            projects.push({
-                                id: project.id,
-                                name: project.name,
-                                mr: []
-                            })
+    let elementsToDisplay = [];
+    gitlab.getUser().groups.forEach(group => {
+        elementsToDisplay.push({
+            id: group.id,
+            name: group.name,
+            projects: []
+        })
+        gitlab.getProjectsByGroup(group.id)
+            .then(res => {
+                if (res) {
+                    let projects = [];
+                    res.forEach((project) => {
+                        projects.push({
+                            id: project.id,
+                            name: project.name,
+                            mr: []
                         })
-                        gitlab.getOpenMrByGroup(group.id)
-                            .then(mrs => {
-                                mrs.forEach((mr) => {
-                                    if (mr.merged_by == null) {
-                                        projects.find(i => i.id === mr.project_id).mr.push(mr)
+                    })
+                    gitlab.getOpenMrByGroup(group.id)
+                        .then(mrs => {
+                            mrs.forEach((mr) => {
+                                if (mr.merged_by == null) {
+                                    projects.find(i => i.id === mr.project_id).mr.push(mr)
+                                }
+                            })
+                            let ids = [];
+                            let bannedIds = [];
+                            (new Promise(resolve => {
+                                let state_count = 0;
+                                let max_state_count = 0;
+                                projects.forEach((project) => {
+                                    max_state_count += project.mr.length
+                                })
+                                projects.forEach((project) => {
+                                    if (project.mr.length > 0) {
+                                        elementsToDisplay.find(e => e.id === group.id)
+                                            .projects
+                                            .push({
+                                                id: project.id,
+                                                name: project.name,
+                                                mr: []
+                                            })
+                                        project.mr.forEach((mr) => {
+                                            gitlab.getAwardByMergeRequest(mr.project_id, mr.iid)
+                                                .then(awards => {
+                                                    let fill = 'fill: black;'
+                                                    let fill_down = 'fill: black;'
+                                                    let data_award_id_up = null
+                                                    let data_award_id_down = null
+                                                    let th = awards.find(i => i.user.id === gitlab.getUser().id && i.name === "thumbsup");
+                                                    if (th != null) {
+                                                        fill = 'fill: gold;';
+                                                        data_award_id_up += th.id
+                                                    }
+                                                    let down_th = awards.find(i => i.user.id === gitlab.getUser().id && i.name === "thumbsdown")
+                                                    if (down_th) {
+                                                        data_award_id_down += down_th.id
+                                                        fill_down = 'fill: gold;'
+                                                    }
+                                                    elementsToDisplay.find(g => g.id === group.id)
+                                                        .projects.find(p => p.id === project.id)
+                                                        .mr.push({
+                                                        mrUpvotes: mr.upvotes,
+                                                        mrDownvotes: mr.downvotes,
+                                                        data_award_id_up: data_award_id_up,
+                                                        data_award_id_up_render: function () {
+                                                            if (this.data_award_id_up !== null) {
+                                                                return `data-awardid="${this.data_award_id_up}"`
+                                                            }
+                                                            return "data-awardid"
+                                                        },
+                                                        data_award_id_down: data_award_id_down,
+                                                        data_award_id_down_render: function () {
+                                                            if (this.data_award_id_down !== null) {
+                                                                return `data-awardid="${this.data_award_id_down}"`
+                                                            }
+                                                            return "data-awardid"
+                                                        },
+                                                        mrIid: mr.iid,
+                                                        mrAuthorAvatar_url: mr.author.avatar_url,
+                                                        mrProject_id: mr.project_id,
+                                                        fill: fill,
+                                                        fill_down: fill_down,
+                                                        mrWeb_url: mr.web_url,
+                                                        mrTitle: mr.title,
+                                                        mrId: mr.id,
+                                                        mrUser_notes_count: mr.user_notes_count,
+                                                        mergeBtn: function () {
+                                                            if (this.canMerge) {
+                                                                return `<button data-id="${this.mrProject_id}" data-mriid="${this.mrIid}" id="accept_mr_${this.mrId}" class="btn btn-success">Merge</button>`
+                                                            }
+                                                            return ""
+                                                        },
+                                                        projectName: project.name,
+                                                        groupName: USED_CONFIG.GROUP_NAME,
+                                                        canMerge: mr.author.id === gitlab.getUser().id && mr.downvotes === 0 && mr.upvotes >= USED_CONFIG.MIN_APPROVAL_NUMBER
+                                                    })
+                                                    ids.push(`${mr.id}`);
+                                                    state_count++;
+                                                    if (mr.author.id === gitlab.getUser().id) {
+                                                        bannedIds.push(`${mr.id}`)
+                                                    }
+                                                    if (state_count === max_state_count) {
+                                                        document.getElementById('connected').innerHTML = Mustache.render(GITLAB_MERGE_REQUEST_TEMPLATE, {groups: elementsToDisplay})
+                                                        resolve(true)
+                                                    }
+                                                });
+                                        });
+                                    }
+                                });
+                            })).then(resolve => {
+                                hideElement('gitlab_loading')
+                                ids.forEach((id) => {
+                                    if (document.getElementById(id))
+                                        document.getElementById(id).addEventListener('click', function (e) {
+                                            navigator.openTab(e.target.dataset.link)
+                                        })
+                                    if (document.getElementById('accept_mr_' + id)) {
+                                        document.getElementById('accept_mr_' + id).addEventListener('click', (e) => {
+                                            let iid = e.target.dataset.mriid
+                                            let id = e.target.dataset.id
+                                            e.target.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`
+                                            gitlab.mergeARequest(id, iid)
+                                                .then(res => {
+                                                    updateGitlabTab()
+                                                })
+                                        })
+                                    }
+                                    if (document.getElementById(`diff_${id}`)) {
+                                        document.getElementById(`diff_${id}`).addEventListener('click', function (e) {
+                                            let element = e.target
+                                            if (element.tagName === "PATH" || e.target.tagName === "path")
+                                                element = e.target.parentElement
+
+                                            document.getElementById('showDiffContainer').innerHTML = ""
+                                            hideElement("connected")
+                                            showElement(["showDiff", "showDiffLoading"])
+                                            gitlab.getChangesByMergeRequest(element.dataset.projectid, element.dataset.iid)
+                                                .then(res => {
+                                                    if (res) {
+                                                        let final_string_changes = ""
+                                                        res.changes.forEach((change) => {
+                                                            let extensionFile = change.new_path.split('.').pop()
+                                                            let fileName = change.new_path.split('/').pop()
+                                                            final_string_changes += GitLabMarkdownParser.parse(change.diff, extensionFile, fileName, GITLAB_DIFF_TEMPLATE)
+                                                        })
+                                                        hideElement("showDiffLoading")
+                                                        showElement("showDiffContainer")
+                                                        document.getElementById('showDiffContainer').innerHTML = final_string_changes
+                                                    }
+                                                })
+                                        });
+                                    }
+                                    if (document.getElementById(`up_${id}`)) {
+                                        if (!bannedIds.includes(id)) {
+                                            document.getElementById(`up_${id}`).addEventListener('click', function (e) {
+                                                let element = e.target
+                                                if (element.tagName === "PATH" || e.target.tagName === "path")
+                                                    element = e.target.parentElement
+                                                if (element.dataset.awardid === '') {
+                                                    gitlab.addAwardEmoji(
+                                                        element.dataset.projectid,
+                                                        element.dataset.iid,
+                                                        'thumbsup'
+                                                    ).then(res => {
+                                                        if (res) {
+                                                            element.style.fill = "gold"
+                                                            element.dataset.awardid = res.id
+                                                            let value = parseInt(document.getElementById('th_up_' + element.id.replace('up_', '')).textContent)
+                                                            value++;
+                                                            document.getElementById('th_up_' + element.id.replace('up_', '')).textContent = value
+                                                        }
+                                                    })
+                                                } else {
+                                                    gitlab.deleteAwardEmoji(
+                                                        element.dataset.projectid,
+                                                        element.dataset.iid,
+                                                        element.dataset.awardid
+                                                    ).then(res => {
+                                                        element.style.fill = "black"
+                                                        element.dataset.awardid = ""
+                                                        let value = parseInt(document.getElementById('th_up_' + element.id.replace('up_', '')).textContent)
+                                                        value--;
+                                                        document.getElementById('th_up_' + element.id.replace('up_', '')).textContent = value
+                                                    })
+                                                }
+                                            })
+                                        }
+                                    }
+                                    if (document.getElementById(`down_${id}`)) {
+                                        if (!bannedIds.includes(id)) {
+                                            document.getElementById(`down_${id}`).addEventListener('click', function (e) {
+                                                let element = e.target
+                                                if (element.tagName === "PATH" || element.tagName === "path")
+                                                    element = e.target.parentElement
+                                                if (element.dataset.awardid === "") {
+                                                    gitlab.addAwardEmoji(
+                                                        element.dataset.projectid,
+                                                        element.dataset.iid,
+                                                        'thumbsdown'
+                                                    ).then(res => {
+                                                        if (res) {
+                                                            element.style.fill = "gold"
+                                                            element.dataset.awardid = res.id
+                                                            let value = parseInt(document.getElementById('th_down_' + element.id.replace('down_', '')).textContent)
+                                                            value++;
+                                                            document.getElementById('th_down_' + element.id.replace('down_', '')).textContent = value
+                                                        }
+                                                    })
+                                                } else {
+                                                    gitlab.deleteAwardEmoji(
+                                                        element.dataset.projectid,
+                                                        element.dataset.iid,
+                                                        element.dataset.awardid
+                                                    ).then(res => {
+                                                        element.dataset.awardid = ""
+                                                        element.style.fill = "black"
+                                                        let value = parseInt(document.getElementById('th_down_' + element.id.replace('down_', '')).textContent)
+                                                        value--;
+                                                        document.getElementById('th_down_' + element.id.replace('down_', '')).textContent = value
+                                                    })
+                                                }
+                                            })
+                                        }
+                                    }
+                                    if (document.getElementById(`comment_${id}`)) {
+                                        document.getElementById(`comment_${id}`).addEventListener('click', function (e) {
+                                            let element = e.target
+                                            if (element.tagName === "PATH" || element.tagName === "path")
+                                                element = e.target.parentElement
+
+                                            document.getElementById('showCommentsContainer').innerHTML = ""
+                                            showElement(['showComments', 'showCommentsLoading']);
+                                            hideElement('connected');
+
+                                            gitlab.getCommentByMergeRequest(element.dataset.projectid, element.dataset.iid)
+                                                .then(comments => {
+                                                    if (comments.length === 0) {
+                                                        document.getElementById('showCommentsContainer').innerHTML = "Pas de commentaires sur la merge request."
+                                                    }
+                                                    hideElement('showCommentsLoading')
+                                                    let ids_resolve = []
+                                                    let reader = new commonmark.Parser();
+                                                    let writer = new commonmark.HtmlRenderer();
+                                                    comments.filter(i => i.individual_note === false).forEach(comment => {
+                                                        let isFirstNote = true
+                                                        comment.notes.filter(a => a.system === false).forEach(note => {
+                                                            if (isFirstNote) {
+                                                                isFirstNote = false
+                                                                document.getElementById('showCommentsContainer').innerHTML += '<p class="text-left" style="font-size: 12px;">';
+                                                            } else {
+                                                                document.getElementById('showCommentsContainer').innerHTML += '<p class="text-left" style="font-size: 12px; margin-left:20px;">';
+                                                            }
+                                                            let parsed = reader.parse(note.body)
+                                                            document.getElementById('showCommentsContainer').innerHTML += '<img style="width: 25px; height: 25px; margin-right: 10px;" src="' + note.author.avatar_url + '" />';
+                                                            document.getElementById('showCommentsContainer').innerHTML += '<span style="font-size: 14px; margin-left: 10px;"> ' + writer.render(parsed);
+                                                            document.getElementById('showCommentsContainer').innerHTML += '</p>';
+                                                            if (note.resolvable && !note.resolved) {
+                                                                document.getElementById('showCommentsContainer').innerHTML += '<button id="resolve_' + comment.id + '" class="btn btn-success form-control" style="width: 200px; opacity: 0.6;">Résoudre le thread</button>'
+                                                                ids_resolve.push('resolve_' + comment.id)
+                                                            } else if (note.resolvable && note.resolved) {
+                                                                document.getElementById('showCommentsContainer').innerHTML += '<button class="btn btn-success form-control" disabled style="width: 200px; opacity: 0.6;">Thread résolu</button>'
+                                                            }
+                                                            document.getElementById('showCommentsContainer').innerHTML += '<hr/>'
+                                                        })
+                                                    })
+                                                    ids_resolve.forEach(id => {
+                                                        if (document.getElementById(id)) {
+                                                            document.getElementById(id).addEventListener('click', function (e) {
+                                                                if (e.target.disabled || e.target.disabled === "disabled") return;
+                                                                let id = e.target.id.replace('resolve_', '')
+                                                                gitlab.resolveThread(element.dataset.projectid, element.dataset.iid, id)
+                                                                    .then(res => {
+                                                                        e.target.textContent = "Thread résolu"
+                                                                        e.target.disabled = "disabled"
+                                                                    })
+                                                            })
+                                                        }
+                                                    })
+                                                })
+                                        });
                                     }
                                 })
-                                let ids = [];
-                                let bannedIds = [];
-                                (new Promise(resolve => {
-                                    let state_count = 0;
-                                    let max_state_count = 0;
-                                    projects.forEach((project) => {
-                                        max_state_count += project.mr.length
-                                    })
-                                    projects.forEach((project) => {
-                                        if (project.mr.length > 0) {
-                                            elementsToDisplay.find(e => e.id === group.id)
-                                                .projects
-                                                .push({
-                                                    id: project.id,
-                                                    name: project.name,
-                                                    mr: []
-                                                })
-                                            project.mr.forEach((mr) => {
-                                                gitlab.getAwardByMergeRequest(mr.project_id, mr.iid)
-                                                    .then(awards => {
-                                                        let fill = 'fill: black;'
-                                                        let fill_down = 'fill: black;'
-                                                        let data_award_id_up = null
-                                                        let data_award_id_down = null
-                                                        let th = awards.find(i => i.user.id === data.gitlab.user.id && i.name === "thumbsup");
-                                                        if (th != null) {
-                                                            fill = 'fill: gold;';
-                                                            data_award_id_up += th.id
-                                                        }
-                                                        let down_th = awards.find(i => i.user.id === data.gitlab.user.id && i.name === "thumbsdown")
-                                                        if (down_th) {
-                                                            data_award_id_down += down_th.id
-                                                            fill_down = 'fill: gold;'
-                                                        }
-                                                        elementsToDisplay.find(g => g.id === group.id)
-                                                            .projects.find(p => p.id === project.id)
-                                                            .mr.push({
-                                                                mrUpvotes: mr.upvotes,
-                                                                mrDownvotes: mr.downvotes,
-                                                                data_award_id_up: data_award_id_up,
-                                                                data_award_id_up_render: function() {
-                                                                    if (this.data_award_id_up !== null) {
-                                                                        return `data-awardid="${this.data_award_id_up}"`
-                                                                    }
-                                                                    return "data-awardid"
-                                                                },
-                                                                data_award_id_down: data_award_id_down,
-                                                                data_award_id_down_render: function() {
-                                                                    if (this.data_award_id_down !== null) {
-                                                                        return `data-awardid="${this.data_award_id_down}"`
-                                                                    }
-                                                                    return "data-awardid"
-                                                                },
-                                                                mrIid: mr.iid,
-                                                                mrAuthorAvatar_url: mr.author.avatar_url,
-                                                                mrProject_id: mr.project_id,
-                                                                fill: fill,
-                                                                fill_down: fill_down,
-                                                                mrWeb_url: mr.web_url,
-                                                                mrTitle: mr.title,
-                                                                mrId: mr.id,
-                                                                mrUser_notes_count: mr.user_notes_count,
-                                                                mergeBtn: function() {
-                                                                    if (this.canMerge) {
-                                                                        return `<button data-id="${this.mrProject_id}" data-mriid="${this.mrIid}" id="accept_mr_${this.mrId}" class="btn btn-success">Merge</button>`
-                                                                    }
-                                                                    return ""
-                                                                },
-                                                                projectName: project.name,
-                                                                groupName: USED_CONFIG.GROUP_NAME,
-                                                                canMerge: mr.author.id === data.gitlab.user.id && mr.downvotes === 0 && mr.upvotes >= USED_CONFIG.MIN_APPROVAL_NUMBER
-                                                            })
-                                                        ids.push(`${mr.id}`);
-                                                        state_count++;
-                                                        if (mr.author.id === data.gitlab.user.id) {
-                                                            bannedIds.push(`${mr.id}`)
-                                                        }
-                                                        if (state_count === max_state_count) {
-                                                            document.getElementById('connected').innerHTML = Mustache.render(GITLAB_MERGE_REQUEST_TEMPLATE, {groups: elementsToDisplay})
-                                                            resolve(true)
-                                                        }
-                                                    });
-                                            });
-                                        }
-                                    });
-                                })).then(resolve => {
-                                    hideElement('gitlab_loading')
-                                    ids.forEach((id) => {
-                                        if (document.getElementById(id))
-                                            document.getElementById(id).addEventListener('click', function (e) {
-                                                navigator.openTab(e.target.dataset.link)
-                                            })
-                                        if (document.getElementById('accept_mr_'+id)) {
-                                            document.getElementById('accept_mr_'+id).addEventListener('click', (e) => {
-                                                let iid = e.target.dataset.mriid
-                                                let id = e.target.dataset.id
-                                                e.target.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`
-                                                gitlab.mergeARequest(id, iid)
-                                                    .then(res => {
-                                                        updateGitlabTab()
-                                                    })
-                                            })
-                                        }
-                                        if (document.getElementById(`diff_${id}`)) {
-                                            document.getElementById(`diff_${id}`).addEventListener('click', function(e) {
-                                                let element = e.target
-                                                if(element.tagName === "PATH" || e.target.tagName === "path")
-                                                    element = e.target.parentElement
-
-                                                document.getElementById('showDiffContainer').innerHTML = ""
-                                                hideElement("connected")
-                                                showElement(["showDiff", "showDiffLoading"])
-                                                gitlab.getChangesByMergeRequest(element.dataset.projectid, element.dataset.iid)
-                                                    .then(res => {
-                                                        if (res) {
-                                                            let final_string_changes = ""
-                                                            res.changes.forEach((change) => {
-                                                                let extensionFile = change.new_path.split('.').pop()
-                                                                let fileName = change.new_path.split('/').pop()
-                                                                final_string_changes += GitLabMarkdownParser.parse(change.diff, extensionFile, fileName, GITLAB_DIFF_TEMPLATE)
-                                                            })
-                                                            hideElement("showDiffLoading")
-                                                            showElement("showDiffContainer")
-                                                            document.getElementById('showDiffContainer').innerHTML = final_string_changes
-                                                        }
-                                                    })
-                                            });
-                                        }
-                                        if (document.getElementById(`up_${id}`)) {
-                                            if (!bannedIds.includes(id)) {
-                                                document.getElementById(`up_${id}`).addEventListener('click', function (e) {
-                                                    let element = e.target
-                                                    if(element.tagName === "PATH" || e.target.tagName === "path")
-                                                        element = e.target.parentElement
-                                                    if (element.dataset.awardid === '') {
-                                                        gitlab.addAwardEmoji(
-                                                            element.dataset.projectid,
-                                                            element.dataset.iid,
-                                                            'thumbsup'
-                                                        ).then(res => {
-                                                            if (res) {
-                                                                element.style.fill = "gold"
-                                                                element.dataset.awardid = res.id
-                                                                let value = parseInt(document.getElementById('th_up_' + element.id.replace('up_', '')).textContent)
-                                                                value ++;
-                                                                document.getElementById('th_up_' + element.id.replace('up_', '')).textContent = value
-                                                            }
-                                                        })
-                                                    } else {
-                                                        gitlab.deleteAwardEmoji(
-                                                            element.dataset.projectid,
-                                                            element.dataset.iid,
-                                                            element.dataset.awardid
-                                                        ).then(res => {
-                                                            element.style.fill = "black"
-                                                            element.dataset.awardid = ""
-                                                            let value = parseInt(document.getElementById('th_up_' + element.id.replace('up_', '')).textContent)
-                                                            value --;
-                                                            document.getElementById('th_up_' + element.id.replace('up_', '')).textContent = value
-                                                        })
-                                                    }
-                                                })
-                                            }
-                                        }
-                                        if (document.getElementById(`down_${id}`)) {
-                                            if (!bannedIds.includes(id)) {
-                                                document.getElementById(`down_${id}`).addEventListener('click', function (e) {
-                                                    let element = e.target
-                                                    if(element.tagName === "PATH" || element.tagName === "path")
-                                                        element = e.target.parentElement
-                                                    if (element.dataset.awardid === "") {
-                                                        gitlab.addAwardEmoji(
-                                                            element.dataset.projectid,
-                                                            element.dataset.iid,
-                                                            'thumbsdown'
-                                                        ).then(res => {
-                                                            if (res) {
-                                                                element.style.fill = "gold"
-                                                                element.dataset.awardid = res.id
-                                                                let value = parseInt(document.getElementById('th_down_' + element.id.replace('down_', '')).textContent)
-                                                                value ++;
-                                                                document.getElementById('th_down_' + element.id.replace('down_', '')).textContent = value
-                                                            }
-                                                        })
-                                                    } else {
-                                                        gitlab.deleteAwardEmoji(
-                                                            element.dataset.projectid,
-                                                            element.dataset.iid,
-                                                            element.dataset.awardid
-                                                        ).then(res => {
-                                                            element.dataset.awardid = ""
-                                                            element.style.fill = "black"
-                                                            let value = parseInt(document.getElementById('th_down_' + element.id.replace('down_', '')).textContent)
-                                                            value --;
-                                                            document.getElementById('th_down_' + element.id.replace('down_', '')).textContent = value
-                                                        })
-                                                    }
-                                                })
-                                            }
-                                        }
-                                        if (document.getElementById(`comment_${id}`)) {
-                                            document.getElementById(`comment_${id}`).addEventListener('click', function(e) {
-                                                let element = e.target
-                                                if(element.tagName === "PATH" || element.tagName === "path")
-                                                    element = e.target.parentElement
-
-                                                document.getElementById('showCommentsContainer').innerHTML = ""
-                                                showElement(['showComments', 'showCommentsLoading']);
-                                                hideElement('connected');
-
-                                                gitlab.getCommentByMergeRequest(element.dataset.projectid, element.dataset.iid)
-                                                    .then(comments => {
-                                                        if (comments.length === 0) {
-                                                            document.getElementById('showCommentsContainer').innerHTML = "Pas de commentaires sur la merge request."
-                                                        }
-                                                        hideElement('showCommentsLoading')
-                                                        let ids_resolve = []
-                                                        let reader = new commonmark.Parser();
-                                                        let writer = new commonmark.HtmlRenderer();
-                                                        comments.filter(i => i.individual_note === false).forEach(comment => {
-                                                            let isFirstNote = true
-                                                            comment.notes.filter (a => a.system === false).forEach(note => {
-                                                                if (isFirstNote) {
-                                                                    isFirstNote = false
-                                                                    document.getElementById('showCommentsContainer').innerHTML += '<p class="text-left" style="font-size: 12px;">';
-                                                                } else {
-                                                                    document.getElementById('showCommentsContainer').innerHTML += '<p class="text-left" style="font-size: 12px; margin-left:20px;">';
-                                                                }
-                                                                let parsed = reader.parse(note.body)
-                                                                document.getElementById('showCommentsContainer').innerHTML += '<img style="width: 25px; height: 25px; margin-right: 10px;" src="' + note.author.avatar_url + '" />';
-                                                                document.getElementById('showCommentsContainer').innerHTML += '<span style="font-size: 14px; margin-left: 10px;"> ' + writer.render(parsed);
-                                                                document.getElementById('showCommentsContainer').innerHTML += '</p>';
-                                                                if (note.resolvable && !note.resolved) {
-                                                                    document.getElementById('showCommentsContainer').innerHTML += '<button id="resolve_'+comment.id+'" class="btn btn-success form-control" style="width: 200px; opacity: 0.6;">Résoudre le thread</button>'
-                                                                    ids_resolve.push('resolve_'+comment.id)
-                                                                } else if (note.resolvable && note.resolved) {
-                                                                    document.getElementById('showCommentsContainer').innerHTML += '<button class="btn btn-success form-control" disabled style="width: 200px; opacity: 0.6;">Thread résolu</button>'
-                                                                }
-                                                                document.getElementById('showCommentsContainer').innerHTML += '<hr/>'
-                                                            })
-                                                        })
-                                                        ids_resolve.forEach(id => {
-                                                            if (document.getElementById(id)) {
-                                                                document.getElementById(id).addEventListener('click', function(e) {
-                                                                    if (e.target.disabled || e.target.disabled === "disabled") return;
-                                                                    let id = e.target.id.replace('resolve_', '')
-                                                                    gitlab.resolveThread(element.dataset.projectid, element.dataset.iid, id)
-                                                                        .then(res => {
-                                                                            e.target.textContent = "Thread résolu"
-                                                                            e.target.disabled = "disabled"
-                                                                        })
-                                                                })
-                                                            }
-                                                        })
-                                                    })
-                                            });
-                                        }
-                                    })
-                                })
                             })
-                    }
-                })
-                if (document.getElementById('showCommentsCross')) {
-                    document.getElementById('showCommentsCross').addEventListener('click', function() {
-                        hideElement('showComments')
-                        showElement('connected')
-                    })
-                }
-                if (document.getElementById('showDiffCross')) {
-                    document.getElementById('showDiffCross').addEventListener('click', function() {
-                        hideElement('showDiff')
-                        showElement('connected')
-                    })
+                        })
                 }
             })
-        } else {
-            showElement('not_connected');
-            hideElement(['loading', 'connected']);
+        if (document.getElementById('showCommentsCross')) {
+            document.getElementById('showCommentsCross').addEventListener('click', function () {
+                hideElement('showComments')
+                showElement('connected')
+            })
+        }
+        if (document.getElementById('showDiffCross')) {
+            document.getElementById('showDiffCross').addEventListener('click', function () {
+                hideElement('showDiff')
+                showElement('connected')
+            })
         }
     })
 }

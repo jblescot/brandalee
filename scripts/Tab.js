@@ -3,7 +3,8 @@
  */
 class Tab {
 
-    constructor() {
+    constructor(navigator) {
+        this.navigator = navigator
         this.tabs = [
             {
                 name: 'Configuration',
@@ -30,7 +31,9 @@ class Tab {
                 isActive: false
             }
         ]
-        this.render()
+        if (body.dataset.type && body.dataset.type === 'plugin') {
+            this.render()
+        }
     }
 
     render() {
@@ -56,6 +59,56 @@ class Tab {
             hideElement(['container_gitlab', 'container_jira', 'container_jse'])
             showElement('container_configuration')
         })
+        let cmp = document.querySelector('#cmp')
+        let picker = new Picker(cmp)
+        picker.onChange = function(color) {
+            cmp.style.backgroundColor = color.rgbaString;
+            cmp.value = color.rgbaString
+        }
+        picker.setOptions({
+            popup: 'right',
+            color: cmp.value
+        })
+
+        let cmnv = document.querySelector('#cmnv')
+        let cmnvPicker = new Picker(cmnv)
+        cmnvPicker.onChange = function(color) {
+            cmnv.style.backgroundColor = color.rgbaString
+            cmnv.value = color.rgbaString
+        }
+        cmnvPicker.setOptions({
+            popup: 'left',
+            color: cmnv.value
+        })
+
+        this.navigator.getFromStore('notifications', (d) => {
+            if (d.notifications) {
+                NOTIFICATIONS = d.notifications
+            } else {
+                this.navigator.store({notifications: {mergePossible: false}})
+                NOTIFICATIONS = {mergePossible: false}
+            }
+            if (NOTIFICATIONS.mergePossible === true) {
+                document.getElementById('can_merge_input').click()
+                document.getElementById('can_merge_input').setAttribute("activated", "true")
+            } else {
+                document.getElementById('can_merge_input').setAttribute("activated", "false")
+            }
+        })
+
+        if (document.getElementById("can_merge_input")) {
+            document.getElementById('can_merge_input').addEventListener('change', (e) => {
+                let activated = e.target.getAttribute("activated")
+                if (activated === "true") {
+                    e.target.setAttribute("activated", "false")
+                    NOTIFICATIONS.mergePossible = false
+                } else if (activated === "false") {
+                    e.target.setAttribute("activated", "true")
+                    NOTIFICATIONS.mergePossible = true
+                }
+                navigator.store({notifications: NOTIFICATIONS})
+            })
+        }
     }
 
     initGitlab() {
