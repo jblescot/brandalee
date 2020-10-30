@@ -11,6 +11,7 @@ let JIRA_JSE_TEMPLATE = ""
 let GITLAB_DIFF_TEMPLATE = ""
 
 const gitlab = new GitLab(navigator)
+const tab = new Tab()
 
 /**
  * Charge le contenu d'un fichier et appel une callback en passant le textContent en paramètre.
@@ -314,46 +315,7 @@ function initPopUp() {
     updateGitlabTab();
     updateJiraTab();
 
-    document.getElementById('tab_configuration').addEventListener('click', function (e) {
-        e.target.classList.add('active')
-        getFirstChildren(document.getElementById('tab_gitlab')).classList.remove('active');
-        getFirstChildren(document.getElementById('tab_jira')).classList.remove('active');
-        getFirstChildren(document.getElementById('tab_jse')).classList.remove('active');
-        hideElement(['container_gitlab', 'container_jira', 'container_jse'])
-        showElement('container_configuration')
-    })
-    document.getElementById('tab_gitlab').addEventListener('click', function (e) {
-        e.target.classList.add('active')
-        getFirstChildren(document.getElementById('tab_configuration')).classList.remove('active');
-        getFirstChildren(document.getElementById('tab_jira')).classList.remove('active');
-        getFirstChildren(document.getElementById('tab_jse')).classList.remove('active');
-        hideElement(['container_configuration', 'container_jira', 'container_jse'])
-        showElement('container_gitlab')
-    })
-
-    document.getElementById('tab_jira').addEventListener('click', function(e) {
-        e.target.classList.add('active')
-        getFirstChildren(document.getElementById('tab_configuration')).classList.remove('active');
-        getFirstChildren(document.getElementById('tab_gitlab')).classList.remove('active');
-        getFirstChildren(document.getElementById('tab_jse')).classList.remove('active');
-        hideElement(['container_configuration', 'container_gitlab', 'container_jse'])
-        showElement('container_jira')
-    })
-
-    document.getElementById('tab_jse').addEventListener('click', function(e) {
-        navigator.getFromStore('jira', (d) => {
-            if (d.jira) {
-                e.target.classList.add('active')
-                getFirstChildren(document.getElementById('tab_configuration')).classList.remove('active');
-                getFirstChildren(document.getElementById('tab_gitlab')).classList.remove('active');
-                getFirstChildren(document.getElementById('tab_jira')).classList.remove('active');
-                hideElement(['container_configuration', 'container_gitlab', 'container_jira'])
-                showElement('container_jse')
-            } else {
-                navigator.sendNotification(MESSAGES.notifications.jiraMustConnect.title, MESSAGES.notifications.jiraMustConnect.message)
-            }
-        })
-    })
+    tab.configureTabs()
 
     // Récupération des informations personnel.
     document.getElementById('own_data').addEventListener('click', () => {
@@ -418,9 +380,6 @@ function initPopUp() {
 
     document.getElementById('validate_gitlab_token').addEventListener('click', function (e) {
         e.target.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Chargement...'
-        let headers = new Headers()
-        headers.append('PRIVATE-TOKEN', getValueOfDomId('token_gitlab'))
-        headers.append('Access-Control-Allow-Origin', '*')
         gitlab.getPAT()
             .then(res => {
             if (res) {

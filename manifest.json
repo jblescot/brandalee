@@ -13,6 +13,7 @@
           "./scripts/vars.js",
           "./scripts/GitLab.js",
           "./scripts/GitLabMarkdownParser.js",
+          "./scripts/Tab.js",
           "./lib/snackBar.js",
           "./lib/templateEngine.js",
           "./lib/vanillapicker.js",
