@@ -11,6 +11,7 @@
           "./scripts/functions.js",
           "./scripts/console.js",
           "./scripts/vars.js",
+          "./scripts/GitLab.js",
           "./scripts/GitLabMarkdownParser.js",
           "./lib/snackBar.js",
           "./lib/templateEngine.js",

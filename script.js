@@ -10,6 +10,8 @@ let GITLAB_MERGE_REQUEST_TEMPLATE = ""
 let JIRA_JSE_TEMPLATE = ""
 let GITLAB_DIFF_TEMPLATE = ""
 
+const gitlab = new GitLab(navigator)
+
 /**
  * Charge le contenu d'un fichier et appel une callback en passant le textContent en paramètre.
  *
@@ -192,6 +194,7 @@ function initDisconnect() {
     document.getElementById('disconnect').addEventListener('click', () => {
         navigator.store({jira: null})
         navigator.store({gitlab: null})
+        gitlab.updateCredential()
         updateGitlabTab();
         updateJiraTab()
     })
@@ -418,35 +421,23 @@ function initPopUp() {
         let headers = new Headers()
         headers.append('PRIVATE-TOKEN', getValueOfDomId('token_gitlab'))
         headers.append('Access-Control-Allow-Origin', '*')
-        fetch("https://gitlab.com/api/v4/personal_access_tokens", {
-            method: 'GET',
-            headers: headers
-        })
+        gitlab.getPAT()
             .then(res => {
-                if (res.ok) {
-                    return res.json()
-                } else {
-                    return null
-                }
-            })?.then(res => {
             if (res) {
                 let last_token = res[res.length - 1]
-                fetch('https://gitlab.com/api/v4/users/' + last_token.user_id)
-                    .then(user => user.json())
+                gitlab.getUserByTokenId(last_token.user_id)
                     .then(user => {
                         if (user) {
-                            fetch('https://gitlab.com/api/v4/groups/', {
-                                method: 'GET',
-                                headers: headers
-                            })
-                                .then(groups => groups.json())
+                            gitlab.getGroupsByUser()
                                 .then(groups => {
                                     if (groups) {
                                         user.token = getValueOfDomId('token_gitlab')
                                         user.groups = groups
                                         last_token.user = user
                                         navigator.store({gitlab: last_token})
+                                        gitlab.updateCredential()
                                         updateGitlabTab();
+                                        e.target.innerHTML = 'Valider'
                                     }
                                 })
                         }
@@ -667,9 +658,6 @@ function updateGitlabTab() {
             showElement(['gitlab_loading', 'connected']);
             hideElement(['not_connected', 'loading'])
 
-            let headers = new Headers()
-            headers.append('PRIVATE-TOKEN', data.gitlab.user.token)
-            let getOptions = {method: 'GET', headers: headers}
             let elementsToDisplay = [];
             data.gitlab.user.groups.forEach( group => {
                 elementsToDisplay.push({
@@ -677,7 +665,7 @@ function updateGitlabTab() {
                     name: group.name,
                     projects: []
                 })
-                executeRequest('https://gitlab.com/api/v4/groups/' + group.id + '/projects', getOptions)
+                gitlab.getProjectsByGroup(group.id)
                 .then(res => {
                     if (res) {
                         let projects = [];
@@ -688,7 +676,7 @@ function updateGitlabTab() {
                                 mr: []
                             })
                         })
-                        executeRequest('https://gitlab.com/api/v4/groups/' + group.id + '/merge_requests?state=opened', getOptions)
+                        gitlab.getOpenMrByGroup(group.id)
                             .then(mrs => {
                                 mrs.forEach((mr) => {
                                     if (mr.merged_by == null) {
@@ -713,7 +701,7 @@ function updateGitlabTab() {
                                                     mr: []
                                                 })
                                             project.mr.forEach((mr) => {
-                                                executeRequest('https://gitlab.com/api/v4/projects/' + mr.project_id + '/merge_requests/' + mr.iid + '/award_emoji', getOptions)
+                                                gitlab.getAwardByMergeRequest(mr.project_id, mr.iid)
                                                     .then(awards => {
                                                         let fill = 'fill: black;'
                                                         let fill_down = 'fill: black;'
@@ -792,17 +780,10 @@ function updateGitlabTab() {
                                                 let iid = e.target.dataset.mriid
                                                 let id = e.target.dataset.id
                                                 e.target.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`
-                                                fetch(`https://gitlab.com/api/v4/projects/${id}/merge_requests/${iid}/merge`, {
-                                                    method: 'PUT',
-                                                    headers: headers
-                                                }).then(res => {
-                                                    if (res.status === 200) {
-                                                        return res.json()
-                                                    }
-                                                    return null
-                                                }).then(res => {
-                                                    updateGitlabTab()
-                                                })
+                                                gitlab.mergeARequest(id, iid)
+                                                    .then(res => {
+                                                        updateGitlabTab()
+                                                    })
                                             })
                                         }
                                         if (document.getElementById(`diff_${id}`)) {
@@ -814,12 +795,11 @@ function updateGitlabTab() {
                                                 document.getElementById('showDiffContainer').innerHTML = ""
                                                 hideElement("connected")
                                                 showElement(["showDiff", "showDiffLoading"])
-                                                executeRequest(`https://gitlab.com/api/v4/projects/${element.dataset.projectid}/merge_requests/${element.dataset.iid}/changes`, getOptions)
+                                                gitlab.getChangesByMergeRequest(element.dataset.projectid, element.dataset.iid)
                                                     .then(res => {
                                                         if (res) {
                                                             let final_string_changes = ""
                                                             res.changes.forEach((change) => {
-                                                                console.log(change)
                                                                 let extensionFile = change.new_path.split('.').pop()
                                                                 let fileName = change.new_path.split('/').pop()
                                                                 final_string_changes += GitLabMarkdownParser.parse(change.diff, extensionFile, fileName, GITLAB_DIFF_TEMPLATE)
@@ -838,11 +818,10 @@ function updateGitlabTab() {
                                                     if(element.tagName === "PATH" || e.target.tagName === "path")
                                                         element = e.target.parentElement
                                                     if (element.dataset.awardid === '') {
-                                                        addAwardEmoji(
+                                                        gitlab.addAwardEmoji(
                                                             element.dataset.projectid,
                                                             element.dataset.iid,
-                                                            'thumbsup',
-                                                            headers
+                                                            'thumbsup'
                                                         ).then(res => {
                                                             if (res) {
                                                                 element.style.fill = "gold"
@@ -853,11 +832,10 @@ function updateGitlabTab() {
                                                             }
                                                         })
                                                     } else {
-                                                        deleteAwardEmoji(
+                                                        gitlab.deleteAwardEmoji(
                                                             element.dataset.projectid,
                                                             element.dataset.iid,
-                                                            element.dataset.awardid,
-                                                            headers
+                                                            element.dataset.awardid
                                                         ).then(res => {
                                                             element.style.fill = "black"
                                                             element.dataset.awardid = ""
@@ -876,11 +854,10 @@ function updateGitlabTab() {
                                                     if(element.tagName === "PATH" || element.tagName === "path")
                                                         element = e.target.parentElement
                                                     if (element.dataset.awardid === "") {
-                                                        addAwardEmoji(
+                                                        gitlab.addAwardEmoji(
                                                             element.dataset.projectid,
                                                             element.dataset.iid,
-                                                            'thumbsdown',
-                                                            headers
+                                                            'thumbsdown'
                                                         ).then(res => {
                                                             if (res) {
                                                                 element.style.fill = "gold"
@@ -891,11 +868,10 @@ function updateGitlabTab() {
                                                             }
                                                         })
                                                     } else {
-                                                        deleteAwardEmoji(
+                                                        gitlab.deleteAwardEmoji(
                                                             element.dataset.projectid,
                                                             element.dataset.iid,
-                                                            element.dataset.awardid,
-                                                            headers
+                                                            element.dataset.awardid
                                                         ).then(res => {
                                                             element.dataset.awardid = ""
                                                             element.style.fill = "black"
@@ -914,11 +890,10 @@ function updateGitlabTab() {
                                                     element = e.target.parentElement
 
                                                 document.getElementById('showCommentsContainer').innerHTML = ""
-
                                                 showElement(['showComments', 'showCommentsLoading']);
                                                 hideElement('connected');
 
-                                                executeRequest(`https://gitlab.com/api/v4/projects/${element.dataset.projectid}/merge_requests/${element.dataset.iid}/discussions`, getOptions)
+                                                gitlab.getCommentByMergeRequest(element.dataset.projectid, element.dataset.iid)
                                                     .then(comments => {
                                                         if (comments.length === 0) {
                                                             document.getElementById('showCommentsContainer').innerHTML = "Pas de commentaires sur la merge request."
@@ -954,15 +929,11 @@ function updateGitlabTab() {
                                                                 document.getElementById(id).addEventListener('click', function(e) {
                                                                     if (e.target.disabled || e.target.disabled === "disabled") return;
                                                                     let id = e.target.id.replace('resolve_', '')
-                                                                    fetch(`https://gitlab.com/api/v4/projects/${element.dataset.projectid}/merge_requests/${element.dataset.iid}/discussions/${id}?resolved=true`, {
-                                                                        method: 'PUT',
-                                                                        headers: headers
-                                                                    })
-                                                                    .then(res => res.json())
-                                                                    .then(res => {
-                                                                        e.target.textContent = "Thread résolu"
-                                                                        e.target.disabled = "disabled"
-                                                                    })
+                                                                    gitlab.resolveThread(element.dataset.projectid, element.dataset.iid, id)
+                                                                        .then(res => {
+                                                                            e.target.textContent = "Thread résolu"
+                                                                            e.target.disabled = "disabled"
+                                                                        })
                                                                 })
                                                             }
                                                         })
@@ -1017,37 +988,6 @@ function checkForUpdate() {
                     })
                 }
             }
-        })
-}
-
-/**
- * Ajoute un pouce en l'air / en bas sur une merge request.
- * 
- * @param {string} projectId 
- * @param {string} iid_merge 
- * @param {string} emoji_name 
- * @param {Headers} headers
- */
-function addAwardEmoji(projectId, iid_merge, emoji_name, headers) {
-    return fetch(`https://gitlab.com/api/v4/projects/${projectId}/merge_requests/${iid_merge}/award_emoji?name=${emoji_name}`,{
-            method: 'POST',
-            headers: headers
-        })
-        .then(res => res.json())
-}
-
-/**
- * Supprimer un pouce en l'air / en bas sur une merge request.
- * 
- * @param {string} projectId 
- * @param {string} iid_merge 
- * @param {string} awardId 
- * @param {Headers} headers
- */
-function deleteAwardEmoji(projectId, iid_merge, awardId, headers) {
-    return fetch(`https://gitlab.com/api/v4/projects/${projectId}/merge_requests/${iid_merge}/award_emoji/${awardId}`,{
-            method: 'DELETE',
-            headers: headers
         })
 }
 
