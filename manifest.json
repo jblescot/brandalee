@@ -14,6 +14,7 @@
           "./scripts/GitLab.js",
           "./scripts/GitLabMarkdownParser.js",
           "./scripts/Tab.js",
+          "./scripts/UIController.js",
           "./scripts/Optionality.js",
           "./lib/snackBar.js",
           "./lib/templateEngine.js",
